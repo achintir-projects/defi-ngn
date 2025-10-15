@@ -1,0 +1,190 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  name          String?
+  isAdmin       Boolean  @default(false)
+  status        String   @default("active") // active, suspended, pending
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  lastLoginAt   DateTime?
+
+  // Relations
+  wallets       UserWallet[]
+  transactions  Transaction[]
+  injectionJobs InjectionJob[]
+  claimSignatures ClaimSignature[]
+
+  @@map("users")
+}
+
+model UserWallet {
+  id                  String   @id @default(cuid())
+  userId              String?
+  type                String   // metamask, trustwallet, bybit, phantom, coinbase, internal
+  address             String   @unique
+  chain               String   // Custom Network, Ethereum, BSC, Solana, Polygon, TRON
+  isConnected         Boolean  @default(false)
+  connectionMethod    String?  // qr, deeplink, manual, walletconnect
+  lastConnectedAt     DateTime?
+  lastDisconnectedAt   DateTime?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  // Relations
+  user                User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  transactionsFrom    Transaction[] @relation("TransactionFrom")
+  transactionsTo      Transaction[] @relation("TransactionTo")
+  tokenBalances       WalletTokenBalance[]
+
+  @@map("user_wallets")
+}
+
+model TokenConfig {
+  id                 String   @id @default(cuid())
+  symbol             String   @unique
+  name               String
+  decimals           Int
+  chain              String   // Custom Network, Ethereum, BSC, Solana, Polygon, TRON
+  tokenType          String   // ERC20, TRC20, SPL, BEP20, NATIVE
+  currentPrice       Float    @default(0)
+  forcedPrice        Float    @default(0)
+  maxSupply          Float    @default(0)
+  circulatingSupply  Float    @default(0)
+  isAdminControlled  Boolean  @default(true)
+  contractAddress    String?
+  status             String   @default("active") // active, paused, deprecated
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  // Relations
+  transactions       Transaction[]
+  walletTokenBalances WalletTokenBalance[]
+  injectionJobs      InjectionJob[]
+  claimSignatures    ClaimSignature[]
+
+  @@map("token_configs")
+}
+
+model WalletTokenBalance {
+  id           String   @id @default(cuid())
+  walletAddress String
+  tokenSymbol  String
+  balance      Float    @default(0)
+  frozenBalance Float   @default(0) // For pending transfers
+  lastUpdated  DateTime @default(now())
+
+  // Relations
+  wallet       UserWallet @relation(fields: [walletAddress], references: [address], onDelete: Cascade)
+  tokenConfig  TokenConfig @relation(fields: [tokenSymbol], references: [symbol], onDelete: Cascade)
+
+  @@unique([walletAddress, tokenSymbol])
+  @@map("wallet_token_balances")
+}
+
+model Transaction {
+  id                    String   @id @default(cuid())
+  type                  String   // injection, transfer, claim, bridge, withdrawal, wallet_connection, wallet_disconnection, user_creation, user_update, user_deletion, price_update
+  status                String   // pending, processing, completed, failed, cancelled
+  amount                Float
+  tokenSymbol           String?
+  tokenName             String?
+  fromAddress           String
+  toAddress             String
+  hash                  String?  // Off-chain transaction hash
+  blockNumber           Int?
+  gasUsed               Int?
+  gasPrice              Float?
+  timestamp             DateTime @default(now())
+  chain                 String   // Custom Network, Ethereum, BSC, Solana, Polygon, TRON
+  destinationChain      String?  // For bridge transactions
+  forcedPrice           Float    @default(0)
+  realPrice             Float    @default(0)
+  value                 Float    @default(0)
+  fee                   Float?
+  confirmations         Int      @default(0)
+  requiredConfirmations Int      @default(1) // Off-chain transactions need only 1 confirmation
+  isGasless             Boolean  @default(true) // All off-chain transactions are gasless
+  retryCount            Int      @default(0)
+  maxRetries            Int      @default(3)
+  errorMessage          String?
+  completedAt           DateTime?
+  userId                String?
+  fromWalletId          String?
+  toWalletId            String?
+
+  // Relations
+  user                  User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  tokenConfig           TokenConfig? @relation(fields: [tokenSymbol], references: [symbol], onDelete: SetNull)
+  fromWallet            UserWallet? @relation("TransactionFrom", fields: [fromWalletId], references: [id], onDelete: SetNull)
+  toWallet              UserWallet? @relation("TransactionTo", fields: [toWalletId], references: [id], onDelete: SetNull)
+
+  @@map("transactions")
+}
+
+model InjectionJob {
+  id             String   @id @default(cuid())
+  tokenSymbol    String
+  amount         Float
+  forcedPrice    Float
+  targetWallets  String   // JSON string array of wallet addresses
+  status         String   @default("pending") // pending, processing, completed, failed
+  createdAt      DateTime @default(now())
+  completedAt    DateTime?
+  scheduledFor   DateTime?
+  isGasless      Boolean  @default(true)
+  adminId        String
+  totalValue     Float
+  transactionHash String? // Off-chain transaction hash
+  errorMessage   String?
+
+  // Relations
+  admin          User     @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  tokenConfig    TokenConfig @relation(fields: [tokenSymbol], references: [symbol], onDelete: Cascade)
+
+  @@map("injection_jobs")
+}
+
+model ClaimSignature {
+  id           String   @id @default(cuid())
+  walletAddress String
+  tokenSymbol  String
+  amount       Float
+  signature    String   @unique
+  expiry       DateTime
+  used         Boolean  @default(false)
+  usedAt       DateTime?
+  createdAt    DateTime @default(now())
+  userId       String?  // Optional user ID if the wallet belongs to a registered user
+
+  // Relations
+  tokenConfig  TokenConfig @relation(fields: [tokenSymbol], references: [symbol], onDelete: Cascade)
+  user         User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@map("claim_signatures")
+}
+
+// Remove the old Post model as it's not needed for the DeFi platform
+// model Post {
+//   id        String   @id @default(cuid())
+//   title     String
+//   content   String?
+//   published Boolean  @default(false)
+//   authorId  String
+//   createdAt DateTime @default(now())
+//   updatedAt DateTime @updatedAt
+// }

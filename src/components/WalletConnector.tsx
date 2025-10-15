@@ -1,0 +1,612 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { useToast } from '@/hooks/use-toast'
+import WalletConnectionService, { WalletConnectionResult } from '@/lib/walletConnectionService'
+import OffChainTokenService, { WalletInfo, TokenBalance } from '@/lib/offChainTokenService'
+import NetworkService from '@/lib/networkService'
+import { 
+  Wallet, 
+  Smartphone, 
+  Download, 
+  QrCode, 
+  ExternalLink, 
+  Copy, 
+  CheckCircle, 
+  AlertCircle,
+  Loader2,
+  Chrome,
+  Apple,
+  Wallet as WalletIcon,
+  Bitcoin,
+  Coins,
+  Shield,
+  Settings
+} from 'lucide-react'
+
+interface WalletConnectorProps {
+  onWalletConnected?: (walletInfo: WalletInfo) => void
+  onWalletDisconnected?: () => void
+}
+
+export default function WalletConnector({ onWalletConnected, onWalletDisconnected }: WalletConnectorProps) {
+  const [isConnected, setIsConnected] = useState(false)
+  const [walletInfo, setWalletInfo] = useState<WalletInfo | null>(null)
+  const [tokenBalances, setTokenBalances] = useState<TokenBalance[]>([])
+  const [isLoading, setIsLoading] = useState(false)
+  const [showManualInput, setShowManualInput] = useState(false)
+  const [manualAddress, setManualAddress] = useState('')
+  const [showQR, setShowQR] = useState(false)
+  const [qrCode, setQrCode] = useState('')
+  const [availableWallets, setAvailableWallets] = useState<string[]>([])
+  const [showNetworkDialog, setShowNetworkDialog] = useState(false)
+  const [selectedWalletType, setSelectedWalletType] = useState<string>('')
+  
+  const { toast } = useToast()
+  const walletService = WalletConnectionService
+  const tokenService = OffChainTokenService
+  const networkService = NetworkService
+
+  useEffect(() => {
+    // Initialize default tokens
+    tokenService.initializeDefaultTokens()
+    
+    // Detect available wallets
+    const wallets = walletService.detectAvailableWallets()
+    setAvailableWallets(wallets)
+
+    // Setup wallet event listeners
+    walletService.setupWalletEventListeners(handleAccountsChanged)
+
+    // Check if already connected
+    checkExistingConnection()
+
+    return () => {
+      walletService.removeWalletEventListeners()
+    }
+  }, [])
+
+  const handleAccountsChanged = (accounts: string[]) => {
+    if (accounts.length === 0) {
+      disconnectWallet()
+    } else {
+      // Account changed, update connection
+      connectWallet('metamask') // Reconnect with first available method
+    }
+  }
+
+  const checkExistingConnection = async () => {
+    try {
+      // Check if we have a stored wallet connection
+      const storedWallet = localStorage.getItem('connected_wallet')
+      if (storedWallet) {
+        const walletData = JSON.parse(storedWallet)
+        const info = await tokenService.getOrCreateWallet(
+          walletData.address, 
+          walletData.type
+        )
+        
+        if (info.isConnected) {
+          setWalletInfo(info)
+          setIsConnected(true)
+          loadTokenBalances(info.address)
+          onWalletConnected?.(info)
+        }
+      }
+    } catch (error) {
+      console.error('Error checking existing connection:', error)
+    }
+  }
+
+  const connectWallet = async (walletType: string, address?: string) => {
+    setIsLoading(true)
+    try {
+      let result: WalletConnectionResult
+
+      if (walletType === 'manual') {
+        // Show manual input dialog
+        setShowManualInput(true)
+        return
+      } else if (walletType === 'web3') {
+        // Try to connect with the available web3 provider
+        result = await walletService.connectWallet('metamask') // Fallback to metamask logic
+      } else {
+        result = await walletService.connectWallet(walletType)
+      }
+
+      if (result.success && result.address) {
+        const walletInfo = await tokenService.getOrCreateWallet(
+          result.address, 
+          result.walletType || walletType
+        )
+
+        setWalletInfo(walletInfo)
+        setIsConnected(true)
+        
+        // Store connection
+        localStorage.setItem('connected_wallet', JSON.stringify({
+          address: result.address,
+          type: result.walletType || walletType
+        }))
+
+        // Load token balances
+        await loadTokenBalances(result.address)
+
+        toast({
+          title: "Wallet Connected",
+          description: `${result.walletType || walletType} connected successfully!`,
+        })
+
+        onWalletConnected?.(walletInfo)
+      } else {
+        throw new Error(result.error || 'Connection failed')
+      }
+    } catch (error) {
+      console.error('Wallet connection error:', error)
+      toast({
+        title: "Connection Failed",
+        description: error instanceof Error ? error.message : "Failed to connect wallet",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const disconnectWallet = async () => {
+    try {
+      if (walletInfo?.address) {
+        await walletService.disconnectWallet(walletInfo.address)
+      }
+
+      setIsConnected(false)
+      setWalletInfo(null)
+      setTokenBalances([])
+      localStorage.removeItem('connected_wallet')
+
+      toast({
+        title: "Wallet Disconnected",
+        description: "Your wallet has been disconnected.",
+      })
+
+      onWalletDisconnected?.()
+    } catch (error) {
+      console.error('Wallet disconnection error:', error)
+      toast({
+        title: "Disconnection Failed",
+        description: "Failed to disconnect wallet.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const loadTokenBalances = async (address: string) => {
+    try {
+      const balances = await tokenService.getAllTokenBalances(address)
+      setTokenBalances(balances)
+    } catch (error) {
+      console.error('Error loading token balances:', error)
+    }
+  }
+
+  const copyAddress = () => {
+    if (walletInfo?.address) {
+      navigator.clipboard.writeText(walletInfo.address)
+      toast({
+        title: "Address Copied",
+        description: "Wallet address copied to clipboard.",
+      })
+    }
+  }
+
+  const handleManualConnect = () => {
+    if (manualAddress.trim()) {
+      connectWallet('manual', manualAddress.trim())
+      setManualAddress('')
+      setShowManualInput(false)
+    }
+  }
+
+  const handleQRConnect = async () => {
+    try {
+      const { qrCode } = await walletService.connectWithQRCode()
+      setQrCode(qrCode)
+      setShowQR(true)
+    } catch (error) {
+      toast({
+        title: "QR Code Failed",
+        description: "Failed to generate QR code.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleSetupNetwork = async (walletType: string) => {
+    setSelectedWalletType(walletType)
+    setShowNetworkDialog(true)
+  }
+
+  const handleAddNetwork = async () => {
+    try {
+      const success = await networkService.addNetworkToWallet()
+      if (success) {
+        toast({
+          title: "Network Added",
+          description: "Custom Network has been added to your wallet successfully!",
+        })
+        setShowNetworkDialog(false)
+      } else {
+        throw new Error("Failed to add network")
+      }
+    } catch (error) {
+      toast({
+        title: "Network Setup Failed",
+        description: "Please add the network manually using the instructions provided.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const getWalletIcon = (walletType: string) => {
+    switch (walletType) {
+      case 'metamask':
+        return <Chrome className="h-6 w-6" />
+      case 'trustwallet':
+        return <Smartphone className="h-6 w-6" />
+      case 'bybit':
+        return <Bitcoin className="h-6 w-6" />
+      case 'phantom':
+        return <WalletIcon className="h-6 w-6" />
+      case 'coinbase':
+        return <Coins className="h-6 w-6" />
+      default:
+        return <Wallet className="h-6 w-6" />
+    }
+  }
+
+  const getWalletName = (walletType: string) => {
+    switch (walletType) {
+      case 'metamask':
+        return 'MetaMask'
+      case 'trustwallet':
+        return 'Trust Wallet'
+      case 'bybit':
+        return 'Bybit Wallet'
+      case 'phantom':
+        return 'Phantom'
+      case 'coinbase':
+        return 'Coinbase Wallet'
+      case 'manual':
+        return 'Manual Address'
+      case 'qr':
+        return 'QR Code'
+      case 'web3':
+        return 'Web3 Wallet'
+      default:
+        return 'Unknown Wallet'
+    }
+  }
+
+  const getWalletDownloadLink = (walletType: string) => {
+    switch (walletType) {
+      case 'metamask':
+        return 'https://metamask.io/download/'
+      case 'trustwallet':
+        return 'https://trustwallet.com/download/'
+      case 'bybit':
+        return 'https://www.bybit.com/en/download/'
+      case 'phantom':
+        return 'https://phantom.app/download/'
+      case 'coinbase':
+        return 'https://www.coinbase.com/wallet'
+      default:
+        return '#'
+    }
+  }
+
+  if (isConnected && walletInfo) {
+    return (
+      <Card className="bg-white/10 backdrop-blur-sm border-white/20">
+        <CardHeader>
+          <CardTitle className="text-white flex items-center">
+            {getWalletIcon(walletInfo.type)}
+            <span className="ml-2">Connected Wallet</span>
+          </CardTitle>
+          <CardDescription className="text-gray-300">
+            Your wallet is connected to the Custom Network
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Badge variant="secondary" className="bg-green-600 text-white">
+                <CheckCircle className="mr-1 h-3 w-3" />
+                Connected
+              </Badge>
+              <Badge variant="outline" className="text-xs">
+                {getWalletName(walletInfo.type)}
+              </Badge>
+            </div>
+            <Button variant="outline" size="sm" onClick={disconnectWallet}>
+              Disconnect
+            </Button>
+          </div>
+
+          <div className="p-3 bg-white/5 rounded-lg">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-white">Wallet Address</p>
+                <p className="text-xs text-gray-400">{walletInfo.address}</p>
+              </div>
+              <Button variant="ghost" size="sm" onClick={copyAddress}>
+                <Copy className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+
+          {tokenBalances.length > 0 && (
+            <div className="space-y-2">
+              <h3 className="text-sm font-medium text-white">Token Balances</h3>
+              <div className="space-y-1">
+                {tokenBalances.map((balance, index) => (
+                  <div key={index} className="flex justify-between items-center p-2 bg-white/5 rounded">
+                    <div>
+                      <p className="text-sm font-medium text-white">{balance.tokenSymbol}</p>
+                      <p className="text-xs text-gray-400">
+                        Forced: ${balance.forcedPrice} | Real: ${balance.realPrice}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-medium text-white">
+                        {balance.balance.toLocaleString()}
+                      </p>
+                      <p className="text-xs text-green-400">
+                        ${balance.value.toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    )
+  }
+
+  return (
+    <Card className="bg-white/10 backdrop-blur-sm border-white/20">
+      <CardHeader>
+        <CardTitle className="text-white flex items-center">
+          <Wallet className="mr-2 h-5 w-5" />
+          Connect Your Wallet
+        </CardTitle>
+        <CardDescription className="text-gray-300">
+          Connect your wallet to access the Custom Network and manage your tokens
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <Alert>
+          <Shield className="h-4 w-4" />
+          <AlertDescription>
+            Your wallet will be connected to our Custom Network where you can receive and transfer tokens with zero gas fees.
+          </AlertDescription>
+        </Alert>
+
+        {/* Available Wallets */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {availableWallets.map((walletType) => (
+            <div key={walletType} className="space-y-2">
+              <Button
+                onClick={() => connectWallet(walletType)}
+                disabled={isLoading}
+                variant="outline"
+                className="w-full bg-white/5 border-white/20 text-white hover:bg-white/10"
+              >
+                {isLoading ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  getWalletIcon(walletType)
+                )}
+                {getWalletName(walletType)}
+              </Button>
+              {walletType !== 'manual' && (
+                <Button
+                  onClick={() => handleSetupNetwork(walletType)}
+                  disabled={isLoading}
+                  variant="ghost"
+                  size="sm"
+                  className="w-full text-xs text-blue-400 hover:text-blue-300"
+                >
+                  <Settings className="mr-1 h-3 w-3" />
+                  Setup Network
+                </Button>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* No Wallets Detected Notice */}
+        {availableWallets.length === 1 && availableWallets[0] === 'manual' && (
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              No web3 wallets detected. You can still connect by entering your wallet address manually, or install a wallet like MetaMask.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Manual Input */}
+        {showManualInput ? (
+          <div className="space-y-2">
+            <Input
+              placeholder="Enter wallet address (0x...)"
+              value={manualAddress}
+              onChange={(e) => setManualAddress(e.target.value)}
+              className="bg-gray-800 border-gray-600 text-white placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+            <div className="flex space-x-2">
+              <Button onClick={handleManualConnect} disabled={isLoading || !manualAddress.trim()}>
+                Connect
+              </Button>
+              <Button variant="outline" onClick={() => setShowManualInput(false)}>
+                Cancel
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <Button
+            variant="outline"
+            onClick={() => setShowManualInput(true)}
+            className="w-full bg-white/5 border-white/20 text-white hover:bg-white/10"
+          >
+            <Wallet className="mr-2 h-4 w-4" />
+            Connect Manual Address
+          </Button>
+        )}
+
+        {/* QR Code */}
+        <Dialog open={showQR} onOpenChange={setShowQR}>
+          <DialogTrigger asChild>
+            <Button
+              variant="outline"
+              className="w-full bg-white/5 border-white/20 text-white hover:bg-white/10"
+              onClick={handleQRConnect}
+            >
+              <QrCode className="mr-2 h-4 w-4" />
+              Connect with QR Code
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Connect with QR Code</DialogTitle>
+              <DialogDescription>
+                Scan this QR code with your wallet app to connect
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex justify-center p-4">
+              {qrCode ? (
+                <div className="bg-white p-4 rounded-lg">
+                  <div className="w-48 h-48 bg-gray-200 flex items-center justify-center">
+                    <QrCode className="h-32 w-32 text-gray-600" />
+                  </div>
+                </div>
+              ) : (
+                <Loader2 className="h-8 w-8 animate-spin" />
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Download Wallets */}
+        <div className="space-y-2">
+          <p className="text-sm font-medium text-white">Don't have a wallet?</p>
+          <div className="flex flex-wrap gap-2">
+            {['metamask', 'trustwallet', 'bybit', 'phantom', 'coinbase'].map((walletType) => (
+              <a
+                key={walletType}
+                href={getWalletDownloadLink(walletType)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center space-x-1 text-xs text-blue-400 hover:text-blue-300"
+              >
+                <Download className="h-3 w-3" />
+                <span>{getWalletName(walletType)}</span>
+              </a>
+            ))}
+          </div>
+        </div>
+
+        {/* Network Setup Dialog */}
+        <Dialog open={showNetworkDialog} onOpenChange={setShowNetworkDialog}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle className="flex items-center">
+                <Settings className="mr-2 h-5 w-5" />
+                Network Setup - {getWalletName(selectedWalletType)}
+              </DialogTitle>
+              <DialogDescription>
+                Add the Custom Network to your wallet to use our platform
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-6">
+              {selectedWalletType && (
+                <>
+                  <Alert>
+                    <Shield className="h-4 w-4" />
+                    <AlertDescription>
+                      You need to add our Custom Network to your wallet before connecting. 
+                      This is a one-time setup process.
+                    </AlertDescription>
+                  </Alert>
+
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <Card className="bg-gray-800 border-gray-600">
+                      <CardHeader>
+                        <CardTitle className="text-white text-sm">Quick Setup</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <Button 
+                          onClick={handleAddNetwork}
+                          className="w-full mb-2"
+                        >
+                          <Download className="mr-2 h-4 w-4" />
+                          Add Network Automatically
+                        </Button>
+                        <p className="text-xs text-gray-400">
+                          Click the button above to automatically add the network to your wallet
+                        </p>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="bg-gray-800 border-gray-600">
+                      <CardHeader>
+                        <CardTitle className="text-white text-sm">Network Details</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-2">
+                        <div className="text-sm">
+                          <span className="text-gray-400">Network Name:</span>
+                          <span className="text-white ml-2">Custom Network</span>
+                        </div>
+                        <div className="text-sm">
+                          <span className="text-gray-400">Chain ID:</span>
+                          <span className="text-white ml-2">1337 (0x539)</span>
+                        </div>
+                        <div className="text-sm">
+                          <span className="text-gray-400">Currency:</span>
+                          <span className="text-white ml-2">CETH</span>
+                        </div>
+                        <div className="text-sm">
+                          <span className="text-gray-400">RPC URL:</span>
+                          <span className="text-white ml-2 break-all">http://127.0.0.1:8545</span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  <div className="bg-gray-800 border border-gray-600 rounded-lg p-4">
+                    <h4 className="text-white font-medium mb-2">Manual Setup Instructions</h4>
+                    <ol className="text-sm text-gray-300 space-y-1">
+                      {networkService.getWalletNetworkInstructions(selectedWalletType).steps.map((step, index) => (
+                        <li key={index} className="flex items-start">
+                          <span className="text-blue-400 mr-2">{index + 1}.</span>
+                          <span>{step}</span>
+                        </li>
+                      ))}
+                    </ol>
+                  </div>
+                </>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+      </CardContent>
+    </Card>
+  )
+}
