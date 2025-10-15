@@ -19,23 +19,28 @@ class WalletConnectionService {
   private tokenService = OffChainTokenService
   private customNetwork = 'Custom Network'
 
-  // Detect available wallets
+  // Detect available wallets with improved mobile detection
   detectAvailableWallets(): string[] {
     const wallets: string[] = []
     
     if (typeof window !== 'undefined') {
+      // Check for mobile wallets first (enhanced detection)
+      const mobileWallets = this.detectMobileWallets()
+      wallets.push(...mobileWallets)
+      
+      // Desktop wallet detection
       // MetaMask
-      if (window.ethereum?.isMetaMask) {
+      if (window.ethereum?.isMetaMask && !wallets.includes('metamask')) {
         wallets.push('metamask')
       }
       
-      // Trust Wallet
-      if (window.ethereum?.isTrust || window.trustwallet) {
+      // Trust Wallet browser extension
+      if ((window.ethereum?.isTrust || window.trustwallet) && !wallets.includes('trustwallet')) {
         wallets.push('trustwallet')
       }
       
-      // Bybit Wallet
-      if (window.bybit || window.ethereum?.isBybit) {
+      // Bybit Wallet browser extension
+      if ((window.bybit || window.ethereum?.isBybit) && !wallets.includes('bybit')) {
         wallets.push('bybit')
       }
       
@@ -50,7 +55,7 @@ class WalletConnectionService {
       }
       
       // General Web3 provider
-      if (window.ethereum && !window.ethereum.isMetaMask && !window.ethereum.isTrust) {
+      if (window.ethereum && !window.ethereum.isMetaMask && !window.ethereum.isTrust && !wallets.includes('web3')) {
         wallets.push('web3')
       }
     }
@@ -61,6 +66,79 @@ class WalletConnectionService {
     }
     
     return wallets
+  }
+
+  // Mobile wallet detection methods
+  private isMobile(): boolean {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+  }
+
+  private isTrustWalletMobile(): boolean {
+    // Check if Trust Wallet is installed on mobile
+    try {
+      // Check for Trust Wallet specific user agent or deep link availability
+      const userAgent = navigator.userAgent.toLowerCase()
+      const hasTrustWalletUA = /trustwallet|trust wallet/i.test(userAgent)
+      const hasTrustWindow = (window as any).trustwallet !== undefined
+      const hasTrustReferrer = document.referrer.toLowerCase().includes('trust://')
+      
+      return hasTrustWalletUA || hasTrustWindow || hasTrustReferrer
+    } catch {
+      return false
+    }
+  }
+
+  private isBybitWalletMobile(): boolean {
+    // Check if Bybit Wallet is installed on mobile
+    try {
+      const userAgent = navigator.userAgent.toLowerCase()
+      const hasBybitUA = /bybit/i.test(userAgent)
+      const hasBybitWindow = (window as any).bybit !== undefined
+      const hasBybitReferrer = document.referrer.toLowerCase().includes('bybit://')
+      
+      return hasBybitUA || hasBybitWindow || hasBybitReferrer
+    } catch {
+      return false
+    }
+  }
+
+  private isMetaMaskMobile(): boolean {
+    // Check if MetaMask mobile is installed
+    try {
+      const userAgent = navigator.userAgent.toLowerCase()
+      const hasMetaMaskUA = /metamask/i.test(userAgent)
+      const hasMetaMaskWindow = (window as any).ethereum?.isMetaMask
+      
+      return hasMetaMaskUA || hasMetaMaskWindow
+    } catch {
+      return false
+    }
+  }
+
+  // Enhanced mobile wallet detection with app-specific methods
+  detectMobileWallets(): string[] {
+    const mobileWallets: string[] = []
+    
+    if (!this.isMobile()) {
+      return mobileWallets
+    }
+
+    // Check for Trust Wallet
+    if (this.isTrustWalletMobile()) {
+      mobileWallets.push('trustwallet')
+    }
+
+    // Check for Bybit Wallet
+    if (this.isBybitWalletMobile()) {
+      mobileWallets.push('bybit')
+    }
+
+    // Check for MetaMask Mobile
+    if (this.isMetaMaskMobile()) {
+      mobileWallets.push('metamask')
+    }
+
+    return mobileWallets
   }
 
   // Connect to MetaMask or compatible wallet
@@ -127,43 +205,27 @@ class WalletConnectionService {
   // Connect to Trust Wallet
   async connectTrustWallet(): Promise<WalletConnectionResult> {
     try {
-      // Try mobile deep link first
-      if (this.isMobile()) {
-        const deepLink = `trust://wc?uri=${encodeURIComponent(window.location.href)}`
-        window.location.href = deepLink
-        return {
-          success: true,
-          address: 'pending', // Will be resolved after redirect
-          walletType: 'trustwallet'
-        }
+      // Check if we're on mobile and Trust Wallet is available
+      if (this.isMobile() && this.isTrustWalletMobile()) {
+        // Use WalletConnect or deep linking for mobile
+        return await this.connectTrustWalletMobile()
       }
 
-      // Try browser extension
+      // Try browser extension first
       if (window.trustwallet) {
-        const accounts = await window.trustwallet.request({
-          method: 'eth_requestAccounts'
-        })
-
-        if (!accounts || accounts.length === 0) {
-          throw new Error('No accounts found')
-        }
-
-        const address = accounts[0]
-        await this.tokenService.getOrCreateWallet(address, 'trustwallet', 'deeplink')
-
-        return {
-          success: true,
-          address,
-          walletType: 'trustwallet'
-        }
+        return await this.connectTrustWalletExtension()
       }
 
-      // Fallback to MetaMask-compatible interface
+      // Try MetaMask-compatible interface (some versions of Trust Wallet)
       if (window.ethereum?.isTrust) {
-        return this.connectMetaMask()
+        return await this.connectTrustWalletViaEthereum()
       }
 
-      throw new Error('Trust Wallet not found. Please install Trust Wallet.')
+      // If no Trust Wallet found, provide installation instructions
+      return {
+        success: false,
+        error: 'Trust Wallet not found. Please install Trust Wallet from https://trustwallet.com/download/'
+      }
     } catch (error) {
       console.error('Trust Wallet connection error:', error)
       return {
@@ -173,14 +235,71 @@ class WalletConnectionService {
     }
   }
 
-  // Connect to Bybit Wallet
-  async connectBybitWallet(): Promise<WalletConnectionResult> {
+  // Mobile Trust Wallet connection
+  private async connectTrustWalletMobile(): Promise<WalletConnectionResult> {
     try {
-      if (typeof window === 'undefined' || !window.bybit) {
-        throw new Error('Bybit Wallet not found. Please install Bybit Wallet.')
+      // Try to use WalletConnect protocol if available
+      if (typeof (window as any).WalletConnect !== undefined) {
+        // WalletConnect implementation would go here
+        // For now, we'll use deep linking as fallback
       }
 
-      const accounts = await window.bybit.request({
+      // Create a deep link with connection parameters
+      const callbackUrl = encodeURIComponent(`${window.location.origin}/api/wallet-callback?action=connect&wallet=trustwallet`)
+      const deepLink = `trust://wc?uri=${callbackUrl}`
+      
+      // Store connection attempt in localStorage for handling callback
+      localStorage.setItem('trust_wallet_connection', JSON.stringify({
+        timestamp: Date.now(),
+        callbackUrl: window.location.href,
+        walletType: 'trustwallet'
+      }))
+
+      // Redirect to Trust Wallet
+      window.location.href = deepLink
+
+      // Return pending status
+      return {
+        success: true,
+        address: 'pending',
+        walletType: 'trustwallet',
+        error: 'Redirecting to Trust Wallet... Please approve the connection and return to this page.'
+      }
+    } catch (error) {
+      throw new Error(`Mobile Trust Wallet connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+  }
+
+  // Trust Wallet browser extension connection
+  private async connectTrustWalletExtension(): Promise<WalletConnectionResult> {
+    try {
+      const accounts = await window.trustwallet!.request({
+        method: 'eth_requestAccounts'
+      })
+
+      if (!accounts || accounts.length === 0) {
+        throw new Error('No accounts found in Trust Wallet')
+      }
+
+      const address = accounts[0]
+      
+      // Store wallet in our system
+      await this.tokenService.getOrCreateWallet(address, 'trustwallet', 'extension')
+
+      return {
+        success: true,
+        address,
+        walletType: 'trustwallet'
+      }
+    } catch (error) {
+      throw new Error(`Trust Wallet extension connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+  }
+
+  // Trust Wallet via Ethereum interface
+  private async connectTrustWalletViaEthereum(): Promise<WalletConnectionResult> {
+    try {
+      const accounts = await window.ethereum!.request({
         method: 'eth_requestAccounts'
       })
 
@@ -189,12 +308,40 @@ class WalletConnectionService {
       }
 
       const address = accounts[0]
-      await this.tokenService.getOrCreateWallet(address, 'bybit', 'deeplink')
+      await this.tokenService.getOrCreateWallet(address, 'trustwallet', 'ethereum_interface')
 
       return {
         success: true,
         address,
-        walletType: 'bybit'
+        walletType: 'trustwallet'
+      }
+    } catch (error) {
+      throw new Error(`Trust Wallet via Ethereum interface failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+  }
+
+  // Connect to Bybit Wallet
+  async connectBybitWallet(): Promise<WalletConnectionResult> {
+    try {
+      // Check if we're on mobile and Bybit Wallet is available
+      if (this.isMobile() && this.isBybitWalletMobile()) {
+        return await this.connectBybitWalletMobile()
+      }
+
+      // Try browser extension or desktop app
+      if (window.bybit) {
+        return await this.connectBybitWalletExtension()
+      }
+
+      // Try Ethereum-compatible interface
+      if (window.ethereum?.isBybit) {
+        return await this.connectBybitWalletViaEthereum()
+      }
+
+      // If no Bybit Wallet found, provide installation instructions
+      return {
+        success: false,
+        error: 'Bybit Wallet not found. Please install Bybit Wallet from https://www.bybit.com/en/download/'
       }
     } catch (error) {
       console.error('Bybit Wallet connection error:', error)
@@ -202,6 +349,82 @@ class WalletConnectionService {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to connect to Bybit Wallet'
       }
+    }
+  }
+
+  // Mobile Bybit Wallet connection
+  private async connectBybitWalletMobile(): Promise<WalletConnectionResult> {
+    try {
+      // Create a deep link for Bybit Wallet
+      const callbackUrl = encodeURIComponent(`${window.location.origin}/api/wallet-callback?action=connect&wallet=bybit`)
+      const deepLink = `bybit://wc?uri=${callbackUrl}`
+      
+      // Store connection attempt in localStorage
+      localStorage.setItem('bybit_wallet_connection', JSON.stringify({
+        timestamp: Date.now(),
+        callbackUrl: window.location.href,
+        walletType: 'bybit'
+      }))
+
+      // Redirect to Bybit Wallet
+      window.location.href = deepLink
+
+      return {
+        success: true,
+        address: 'pending',
+        walletType: 'bybit',
+        error: 'Redirecting to Bybit Wallet... Please approve the connection and return to this page.'
+      }
+    } catch (error) {
+      throw new Error(`Mobile Bybit Wallet connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+  }
+
+  // Bybit Wallet browser extension connection
+  private async connectBybitWalletExtension(): Promise<WalletConnectionResult> {
+    try {
+      const accounts = await window.bybit!.request({
+        method: 'eth_requestAccounts'
+      })
+
+      if (!accounts || accounts.length === 0) {
+        throw new Error('No accounts found in Bybit Wallet')
+      }
+
+      const address = accounts[0]
+      await this.tokenService.getOrCreateWallet(address, 'bybit', 'extension')
+
+      return {
+        success: true,
+        address,
+        walletType: 'bybit'
+      }
+    } catch (error) {
+      throw new Error(`Bybit Wallet extension connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+  }
+
+  // Bybit Wallet via Ethereum interface
+  private async connectBybitWalletViaEthereum(): Promise<WalletConnectionResult> {
+    try {
+      const accounts = await window.ethereum!.request({
+        method: 'eth_requestAccounts'
+      })
+
+      if (!accounts || accounts.length === 0) {
+        throw new Error('No accounts found')
+      }
+
+      const address = accounts[0]
+      await this.tokenService.getOrCreateWallet(address, 'bybit', 'ethereum_interface')
+
+      return {
+        success: true,
+        address,
+        walletType: 'bybit'
+      }
+    } catch (error) {
+      throw new Error(`Bybit Wallet via Ethereum interface failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 
@@ -343,19 +566,27 @@ class WalletConnectionService {
     }
   }
 
-  // Universal connect method
+  // Universal connect method with automatic network configuration
   async connectWallet(walletType: string, manualAddress?: string): Promise<WalletConnectionResult> {
+    let result: WalletConnectionResult
+
+    // Connect to the wallet first
     switch (walletType) {
       case 'metamask':
-        return this.connectMetaMask()
+        result = await this.connectMetaMask()
+        break
       case 'trustwallet':
-        return this.connectTrustWallet()
+        result = await this.connectTrustWallet()
+        break
       case 'bybit':
-        return this.connectBybitWallet()
+        result = await this.connectBybitWallet()
+        break
       case 'phantom':
-        return this.connectPhantomWallet()
+        result = await this.connectPhantomWallet()
+        break
       case 'coinbase':
-        return this.connectCoinbaseWallet()
+        result = await this.connectCoinbaseWallet()
+        break
       case 'manual':
         if (!manualAddress) {
           return {
@@ -363,7 +594,8 @@ class WalletConnectionService {
             error: 'Manual address required'
           }
         }
-        return this.connectManualWallet(manualAddress)
+        result = await this.connectManualWallet(manualAddress)
+        break
       case 'qr':
         return {
           success: false,
@@ -374,6 +606,159 @@ class WalletConnectionService {
           success: false,
           error: 'Unsupported wallet type'
         }
+    }
+
+    // If connection was successful and not pending, configure network
+    if (result.success && result.address && result.address !== 'pending') {
+      try {
+        await this.configureWalletNetwork(walletType)
+      } catch (networkError) {
+        console.warn('Network configuration failed:', networkError)
+        // Don't fail the connection if network setup fails
+      }
+    }
+
+    return result
+  }
+
+  // Configure network for connected wallet
+  private async configureWalletNetwork(walletType: string): Promise<void> {
+    try {
+      // Import NetworkService dynamically to avoid circular dependency
+      const NetworkService = (await import('./networkService')).default
+      const networkService = new NetworkService()
+
+      // Try to add and switch to the custom network
+      const networkAdded = await networkService.addNetworkToWallet()
+      
+      if (networkAdded) {
+        console.log('Network configured successfully for', walletType)
+      } else {
+        console.warn('Failed to configure network for', walletType)
+      }
+    } catch (error) {
+      console.error('Error configuring network:', error)
+      throw error
+    }
+  }
+
+  // Handle wallet callback from mobile apps
+  async handleWalletCallback(): Promise<WalletConnectionResult | null> {
+    try {
+      // Check for Trust Wallet callback
+      const trustConnection = localStorage.getItem('trust_wallet_connection')
+      if (trustConnection) {
+        localStorage.removeItem('trust_wallet_connection')
+        const connectionData = JSON.parse(trustConnection)
+        
+        // Check if callback is recent (within 5 minutes)
+        if (Date.now() - connectionData.timestamp < 300000) {
+          return await this.handleTrustWalletCallback(connectionData)
+        }
+      }
+
+      // Check for Bybit Wallet callback
+      const bybitConnection = localStorage.getItem('bybit_wallet_connection')
+      if (bybitConnection) {
+        localStorage.removeItem('bybit_wallet_connection')
+        const connectionData = JSON.parse(bybitConnection)
+        
+        // Check if callback is recent (within 5 minutes)
+        if (Date.now() - connectionData.timestamp < 300000) {
+          return await this.handleBybitWalletCallback(connectionData)
+        }
+      }
+
+      return null
+    } catch (error) {
+      console.error('Error handling wallet callback:', error)
+      return null
+    }
+  }
+
+  // Handle Trust Wallet callback
+  private async handleTrustWalletCallback(connectionData: any): Promise<WalletConnectionResult> {
+    try {
+      // Try to get accounts from Trust Wallet if available
+      if (window.ethereum?.isTrust || window.trustwallet) {
+        const accounts = await (window.trustwallet || window.ethereum)!.request({
+          method: 'eth_requestAccounts'
+        })
+
+        if (accounts && accounts.length > 0) {
+          const address = accounts[0]
+          await this.tokenService.getOrCreateWallet(address, 'trustwallet', 'mobile_callback')
+
+          return {
+            success: true,
+            address,
+            walletType: 'trustwallet'
+          }
+        }
+      }
+
+      // If no direct access, try to get address from URL parameters
+      const urlParams = new URLSearchParams(window.location.search)
+      const address = urlParams.get('address') || urlParams.get('account')
+      
+      if (address) {
+        await this.tokenService.getOrCreateWallet(address, 'trustwallet', 'mobile_callback')
+        return {
+          success: true,
+          address,
+          walletType: 'trustwallet'
+        }
+      }
+
+      throw new Error('No address found in Trust Wallet callback')
+    } catch (error) {
+      return {
+        success: false,
+        error: `Trust Wallet callback failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      }
+    }
+  }
+
+  // Handle Bybit Wallet callback
+  private async handleBybitWalletCallback(connectionData: any): Promise<WalletConnectionResult> {
+    try {
+      // Try to get accounts from Bybit Wallet if available
+      if (window.bybit || window.ethereum?.isBybit) {
+        const accounts = await (window.bybit || window.ethereum)!.request({
+          method: 'eth_requestAccounts'
+        })
+
+        if (accounts && accounts.length > 0) {
+          const address = accounts[0]
+          await this.tokenService.getOrCreateWallet(address, 'bybit', 'mobile_callback')
+
+          return {
+            success: true,
+            address,
+            walletType: 'bybit'
+          }
+        }
+      }
+
+      // If no direct access, try to get address from URL parameters
+      const urlParams = new URLSearchParams(window.location.search)
+      const address = urlParams.get('address') || urlParams.get('account')
+      
+      if (address) {
+        await this.tokenService.getOrCreateWallet(address, 'bybit', 'mobile_callback')
+        return {
+          success: true,
+          address,
+          walletType: 'bybit'
+        }
+      }
+
+      throw new Error('No address found in Bybit Wallet callback')
+    } catch (error) {
+      return {
+        success: false,
+        error: `Bybit Wallet callback failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      }
     }
   }
 

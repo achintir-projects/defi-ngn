@@ -57,6 +57,9 @@ export default function WalletConnector({ onWalletConnected, onWalletDisconnecte
     // Initialize default tokens
     tokenService.initializeDefaultTokens()
     
+    // Check for wallet callbacks first (for mobile wallet returns)
+    checkWalletCallbacks()
+    
     // Detect available wallets
     const wallets = walletService.detectAvailableWallets()
     
@@ -74,6 +77,41 @@ export default function WalletConnector({ onWalletConnected, onWalletDisconnecte
       walletService.removeWalletEventListeners()
     }
   }, [])
+
+  // Check for wallet callbacks from mobile apps
+  const checkWalletCallbacks = async () => {
+    try {
+      const callbackResult = await walletService.handleWalletCallback()
+      if (callbackResult && callbackResult.success && callbackResult.address) {
+        // Handle successful callback connection
+        const walletInfo = await tokenService.getOrCreateWallet(
+          callbackResult.address,
+          callbackResult.walletType || 'unknown'
+        )
+        
+        setWalletInfo(walletInfo)
+        setIsConnected(true)
+        
+        // Store connection
+        localStorage.setItem('connected_wallet', JSON.stringify({
+          address: callbackResult.address,
+          type: callbackResult.walletType || 'unknown'
+        }))
+
+        // Load token balances
+        await loadTokenBalances(callbackResult.address)
+
+        toast({
+          title: "Wallet Connected",
+          description: `${callbackResult.walletType || 'Wallet'} connected successfully via callback!`,
+        })
+
+        onWalletConnected?.(walletInfo)
+      }
+    } catch (error) {
+      console.error('Error checking wallet callbacks:', error)
+    }
+  }
 
   // Prioritize wallets: Trust Wallet, Bybit, then others
   const prioritizeWallets = (wallets: string[]) => {
@@ -134,7 +172,19 @@ export default function WalletConnector({ onWalletConnected, onWalletDisconnecte
         result = await walletService.connectWallet(walletType)
       }
 
-      if (result.success && result.address) {
+      if (result.success) {
+        // Handle pending connections (mobile redirects)
+        if (result.address === 'pending') {
+          // Show a message that we're waiting for mobile wallet connection
+          toast({
+            title: "Connecting to Mobile Wallet",
+            description: result.error || "Please approve the connection in your wallet app and return to this page.",
+            duration: 10000, // Show for 10 seconds
+          })
+          return
+        }
+
+        // Successful connection
         const walletInfo = await tokenService.getOrCreateWallet(
           result.address, 
           result.walletType || walletType
