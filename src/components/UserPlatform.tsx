@@ -123,10 +123,11 @@ export default function UserPlatform() {
               </div>
             </div>
             <h1 className="text-4xl md:text-6xl font-bold text-white mb-4">
-              Custom Network Platform
+              DeFi NGN Platform
             </h1>
             <p className="text-xl text-gray-300 max-w-3xl mx-auto">
-              Access your digital assets on our custom network with zero gas fees and controlled token pricing
+              Access your digital assets on our custom network with zero gas fees and controlled token pricing. 
+              Optimized for mobile wallets like Trust Wallet and Bybit!
             </p>
           </div>
 
@@ -181,10 +182,10 @@ export default function UserPlatform() {
 
           <div className="text-center">
             <Alert className="max-w-2xl mx-auto bg-white/5 border-white/20">
-              <Globe className="h-4 w-4" />
+              <Smartphone className="h-4 w-4" />
               <AlertDescription className="text-gray-300">
-                Connect your wallet to access the Custom Network. Your tokens will be stored securely off-chain 
-                with instant transfers and no gas fees.
+                Connect your Trust Wallet or Bybit Wallet to access the Custom Network. Your tokens will be stored securely off-chain 
+                with instant transfers and no gas fees. Perfect for mobile users!
               </AlertDescription>
             </Alert>
           </div>
@@ -218,8 +219,8 @@ export default function UserPlatform() {
               />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-white">Custom Network Platform</h1>
-              <p className="text-gray-300">Welcome to your digital wallet</p>
+              <h1 className="text-2xl font-bold text-white">DeFi NGN Platform</h1>
+              <p className="text-gray-300">Welcome to your Nigerian digital wallet</p>
             </div>
           </div>
           <div className="flex items-center space-x-4">

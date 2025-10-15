@@ -20,7 +20,7 @@ export class NetworkService {
       symbol: 'CETH',
       decimals: 18
     },
-    rpcUrls: ['http://127.0.0.1:8545'], // Default local RPC
+    rpcUrls: ['https://df-ngn.netlify.app/api/rpc'], // Netlify deployment RPC endpoint
     blockExplorerUrls: ['https://custom-network-explorer.com'],
     isCustom: true
   }

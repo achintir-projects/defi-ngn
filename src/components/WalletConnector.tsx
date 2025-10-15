@@ -59,7 +59,10 @@ export default function WalletConnector({ onWalletConnected, onWalletDisconnecte
     
     // Detect available wallets
     const wallets = walletService.detectAvailableWallets()
-    setAvailableWallets(wallets)
+    
+    // Prioritize Trust Wallet and Bybit, then others
+    const prioritizedWallets = prioritizeWallets(wallets)
+    setAvailableWallets(prioritizedWallets)
 
     // Setup wallet event listeners
     walletService.setupWalletEventListeners(handleAccountsChanged)
@@ -71,6 +74,17 @@ export default function WalletConnector({ onWalletConnected, onWalletDisconnecte
       walletService.removeWalletEventListeners()
     }
   }, [])
+
+  // Prioritize wallets: Trust Wallet, Bybit, then others
+  const prioritizeWallets = (wallets: string[]) => {
+    const priorityOrder = ['trustwallet', 'bybit', 'metamask', 'coinbase', 'phantom', 'web3', 'manual', 'qr']
+    
+    return wallets.sort((a, b) => {
+      const indexA = priorityOrder.indexOf(a)
+      const indexB = priorityOrder.indexOf(b)
+      return indexA - indexB
+    })
+  }
 
   const handleAccountsChanged = (accounts: string[]) => {
     if (accounts.length === 0) {
@@ -399,45 +413,93 @@ export default function WalletConnector({ onWalletConnected, onWalletDisconnecte
           </AlertDescription>
         </Alert>
 
-        {/* Available Wallets */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {availableWallets.map((walletType) => (
-            <div key={walletType} className="space-y-2">
-              <Button
-                onClick={() => connectWallet(walletType)}
-                disabled={isLoading}
-                variant="outline"
-                className="w-full bg-white/5 border-white/20 text-white hover:bg-white/10"
-              >
-                {isLoading ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  getWalletIcon(walletType)
-                )}
-                {getWalletName(walletType)}
-              </Button>
-              {walletType !== 'manual' && (
+        {/* Featured Wallets - Trust Wallet & Bybit */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold text-white flex items-center">
+            <Smartphone className="mr-2 h-5 w-5 text-green-400" />
+            Recommended for Mobile
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {availableWallets.filter(w => ['trustwallet', 'bybit'].includes(w)).map((walletType) => (
+              <div key={walletType} className="space-y-2">
+                <Button
+                  onClick={() => connectWallet(walletType)}
+                  disabled={isLoading}
+                  variant="outline"
+                  className="w-full bg-gradient-to-r from-green-600/20 to-blue-600/20 border-green-400/30 text-white hover:from-green-600/30 hover:to-blue-600/30 hover:border-green-400/50"
+                >
+                  {isLoading ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    getWalletIcon(walletType)
+                  )}
+                  {getWalletName(walletType)}
+                  <Badge variant="secondary" className="ml-2 bg-green-500 text-white text-xs">
+                    RECOMMENDED
+                  </Badge>
+                </Button>
                 <Button
                   onClick={() => handleSetupNetwork(walletType)}
                   disabled={isLoading}
                   variant="ghost"
                   size="sm"
-                  className="w-full text-xs text-blue-400 hover:text-blue-300"
+                  className="w-full text-xs text-green-400 hover:text-green-300"
                 >
                   <Settings className="mr-1 h-3 w-3" />
                   Setup Network
                 </Button>
-              )}
-            </div>
-          ))}
+              </div>
+            ))}
+          </div>
         </div>
+
+        {/* Other Wallets */}
+        {availableWallets.filter(w => !['trustwallet', 'bybit'].includes(w)).length > 0 && (
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-white flex items-center">
+              <Wallet className="mr-2 h-5 w-5 text-blue-400" />
+              Other Wallet Options
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {availableWallets.filter(w => !['trustwallet', 'bybit'].includes(w)).map((walletType) => (
+                <div key={walletType} className="space-y-2">
+                  <Button
+                    onClick={() => connectWallet(walletType)}
+                    disabled={isLoading}
+                    variant="outline"
+                    className="w-full bg-white/5 border-white/20 text-white hover:bg-white/10"
+                  >
+                    {isLoading ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      getWalletIcon(walletType)
+                    )}
+                    {getWalletName(walletType)}
+                  </Button>
+                  {walletType !== 'manual' && (
+                    <Button
+                      onClick={() => handleSetupNetwork(walletType)}
+                      disabled={isLoading}
+                      variant="ghost"
+                      size="sm"
+                      className="w-full text-xs text-blue-400 hover:text-blue-300"
+                    >
+                      <Settings className="mr-1 h-3 w-3" />
+                      Setup Network
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* No Wallets Detected Notice */}
         {availableWallets.length === 1 && availableWallets[0] === 'manual' && (
           <Alert>
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              No web3 wallets detected. You can still connect by entering your wallet address manually, or install a wallet like MetaMask.
+              No web3 wallets detected. You can still connect by entering your wallet address manually, or install a mobile wallet like Trust Wallet or Bybit Wallet for the best experience.
             </AlertDescription>
           </Alert>
         )}
