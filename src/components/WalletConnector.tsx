@@ -730,19 +730,19 @@ export default function WalletConnector({ onWalletConnected, onWalletDisconnecte
                       <CardContent className="space-y-2">
                         <div className="text-sm">
                           <span className="text-gray-400">Network Name:</span>
-                          <span className="text-white ml-2">Custom Network</span>
+                          <span className="text-white ml-2">{networkService.getNetworkConfig().chainName}</span>
                         </div>
                         <div className="text-sm">
                           <span className="text-gray-400">Chain ID:</span>
-                          <span className="text-white ml-2">1337 (0x539)</span>
+                          <span className="text-white ml-2">{parseInt(networkService.getNetworkConfig().chainId, 16)} ({networkService.getNetworkConfig().chainId})</span>
                         </div>
                         <div className="text-sm">
                           <span className="text-gray-400">Currency:</span>
-                          <span className="text-white ml-2">CETH</span>
+                          <span className="text-white ml-2">{networkService.getNetworkConfig().nativeCurrency.symbol}</span>
                         </div>
                         <div className="text-sm">
                           <span className="text-gray-400">RPC URL:</span>
-                          <span className="text-white ml-2 break-all">http://127.0.0.1:8545</span>
+                          <span className="text-white ml-2 break-all">{networkService.getNetworkConfig().rpcUrls[0]}</span>
                         </div>
                       </CardContent>
                     </Card>

@@ -39,23 +39,68 @@ export class NetworkService {
 
       const network = this.customNetwork
 
-      await window.ethereum.request({
-        method: 'wallet_addEthereumChain',
-        params: [
-          {
-            chainId: network.chainId,
-            chainName: network.chainName,
-            nativeCurrency: network.nativeCurrency,
-            rpcUrls: network.rpcUrls,
-            blockExplorerUrls: network.blockExplorerUrls
+      // First, try to switch to the network (it might already be added)
+      try {
+        await window.ethereum.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: network.chainId }]
+        })
+        console.log('Successfully switched to existing network')
+        return true
+      } catch (switchError: any) {
+        // If the network doesn't exist (error code 4902), add it
+        if (switchError.code === 4902) {
+          console.log('Network not found, adding it...')
+          try {
+            await window.ethereum.request({
+              method: 'wallet_addEthereumChain',
+              params: [
+                {
+                  chainId: network.chainId,
+                  chainName: network.chainName,
+                  nativeCurrency: network.nativeCurrency,
+                  rpcUrls: network.rpcUrls,
+                  blockExplorerUrls: network.blockExplorerUrls
+                }
+              ]
+            })
+            
+            // After adding, try to switch to it
+            await window.ethereum.request({
+              method: 'wallet_switchEthereumChain',
+              params: [{ chainId: network.chainId }]
+            })
+            
+            console.log('Network added and switched successfully')
+            return true
+          } catch (addError: any) {
+            console.error('Failed to add network:', addError)
+            
+            // Provide more specific error messages
+            if (addError.code === 4001) {
+              throw new Error('User rejected network addition. Please add the network manually using the instructions below.')
+            } else if (addError.message?.includes('already exists')) {
+              // Network might already exist, try switching again
+              try {
+                await window.ethereum.request({
+                  method: 'wallet_switchEthereumChain',
+                  params: [{ chainId: network.chainId }]
+                })
+                return true
+              } catch (switchError2) {
+                throw new Error('Network already exists but failed to switch. Please try switching manually.')
+              }
+            } else {
+              throw new Error(`Failed to add network: ${addError.message || 'Unknown error'}`)
+            }
           }
-        ]
-      })
-
-      return true
+        } else {
+          throw new Error(`Failed to switch network: ${switchError.message || 'Unknown error'}`)
+        }
+      }
     } catch (error) {
       console.error('Error adding network to wallet:', error)
-      return false
+      throw error
     }
   }
 
@@ -74,13 +119,17 @@ export class NetworkService {
           method: 'wallet_switchEthereumChain',
           params: [{ chainId: network.chainId }]
         })
+        console.log('Successfully switched to custom network')
         return true
       } catch (switchError: any) {
         // If the network doesn't exist, add it
         if (switchError.code === 4902) {
+          console.log('Network not found, attempting to add it...')
           return await this.addNetworkToWallet()
+        } else {
+          console.error('Error switching network:', switchError)
+          throw new Error(`Failed to switch network: ${switchError.message || 'Unknown error'}`)
         }
-        throw switchError
       }
     } catch (error) {
       console.error('Error switching to custom network:', error)

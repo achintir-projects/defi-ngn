@@ -719,7 +719,10 @@ class WalletConnectionService {
         await this.configureWalletNetwork(walletType)
       } catch (networkError) {
         console.warn('Network configuration failed:', networkError)
-        // Don't fail the connection if network setup fails
+        // Include network configuration error in the result but don't fail the connection
+        if (networkError instanceof Error) {
+          result.error = `${result.error || ''}. Network setup failed: ${networkError.message}. Please add the network manually.`
+        }
       }
     }
 
