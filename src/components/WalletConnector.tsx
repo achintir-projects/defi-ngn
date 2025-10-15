@@ -333,7 +333,7 @@ export default function WalletConnector({ onWalletConnected, onWalletDisconnecte
       if (success) {
         toast({
           title: "Network Added",
-          description: "Custom Network has been added to your wallet successfully!",
+          description: "Sepolia Testnet has been added to your wallet successfully!",
         })
         setShowNetworkDialog(false)
       } else {
@@ -414,7 +414,7 @@ export default function WalletConnector({ onWalletConnected, onWalletDisconnecte
             <span className="ml-2">Connected Wallet</span>
           </CardTitle>
           <CardDescription className="text-gray-300">
-            Your wallet is connected to the Custom Network
+            Your wallet is connected to the Sepolia Testnet
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -483,14 +483,14 @@ export default function WalletConnector({ onWalletConnected, onWalletDisconnecte
           Connect Your Wallet
         </CardTitle>
         <CardDescription className="text-gray-300">
-          Connect your wallet to access the Custom Network and manage your tokens
+          Connect your wallet to access the Sepolia Testnet and manage your tokens
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <Alert>
           <Shield className="h-4 w-4" />
           <AlertDescription>
-            Your wallet will be connected to our Custom Network where you can receive and transfer tokens with zero gas fees.
+            Your wallet will be connected to our Sepolia Testnet where you can receive and transfer tokens with zero gas fees.
           </AlertDescription>
         </Alert>
 
@@ -690,7 +690,7 @@ export default function WalletConnector({ onWalletConnected, onWalletDisconnecte
                 Network Setup - {getWalletName(selectedWalletType)}
               </DialogTitle>
               <DialogDescription>
-                Add the Custom Network to your wallet to use our platform
+                Add the Sepolia Testnet to your wallet to use our platform
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-6">
@@ -699,7 +699,7 @@ export default function WalletConnector({ onWalletConnected, onWalletDisconnecte
                   <Alert>
                     <Shield className="h-4 w-4" />
                     <AlertDescription>
-                      You need to add our Custom Network to your wallet before connecting. 
+                      You need to add the Sepolia Testnet to your wallet before connecting. 
                       This is a one-time setup process.
                     </AlertDescription>
                   </Alert>
