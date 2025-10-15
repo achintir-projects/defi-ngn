@@ -1,6 +1,27 @@
-# 🚀 Welcome to Z.ai Code Scaffold
+# 💰 DeFi NGN - Nigerian DeFi Platform
 
-A modern, production-ready web application scaffold powered by cutting-edge technologies, designed to accelerate your development with [Z.ai](https://chat.z.ai)'s AI-powered coding assistance.
+A modern, production-ready DeFi platform designed for the Nigerian market, featuring multi-wallet support, token management, and seamless blockchain integration.
+
+## ✨ Platform Features
+
+### 🏦 Core DeFi Functionality
+- **💳 Multi-Wallet Support**: Connect with MetaMask, Trust Wallet, Bybit, Phantom, and Coinbase
+- **🔗 Network Configuration**: Easy setup for custom blockchain networks
+- **💱 Token Management**: Support for USDT (ERC20/TRC20), ETH, and custom tokens
+- **📊 Transaction History**: Complete transaction tracking and management
+- **💎 Token Injection**: Admin-controlled token distribution with custom pricing
+
+### 🎯 Wallet Integration
+- **🔐 Secure Connections**: Industry-standard wallet connection protocols
+- **🌐 Custom Network**: Pre-configured network settings (Chain ID: 1337)
+- **📱 Mobile-Friendly**: Optimized for both desktop and mobile wallet apps
+- **🔄 Real-time Updates**: Live balance updates and transaction status
+
+### 👨‍💼 Admin Dashboard
+- **📈 Token Management**: Configure and manage all supported tokens
+- **💰 Token Injection**: Distribute tokens to any wallet address
+- **👥 User Management**: Monitor and manage user wallets
+- **🔧 System Configuration**: Full control over platform settings
 
 ## ✨ Technology Stack
 
@@ -56,9 +77,14 @@ This scaffold provides a robust foundation built with:
 
 ## 🚀 Quick Start
 
+### Local Development
+
 ```bash
 # Install dependencies
 npm install
+
+# Set up the database
+npm run db:push
 
 # Start development server
 npm run dev
@@ -70,11 +96,135 @@ npm run build
 npm start
 ```
 
-Open [http://localhost:3000](http://localhost:3000) to see your application running.
+### Deployment
+
+#### Netlify Deployment
+This project is pre-configured for Netlify deployment:
+
+1. **Connect to Netlify**:
+   - Go to [Netlify](https://netlify.com)
+   - Click "New site from Git"
+   - Connect your GitHub repository
+   - Select the `defi-ngn` repository
+
+2. **Build Settings**:
+   - Build command: `npm run build`
+   - Publish directory: `.next`
+   - Node version: 18
+
+3. **Environment Variables** (if needed):
+   - Add any required environment variables in Netlify settings
+
+The project includes `netlify.toml` with optimized configuration for Next.js deployment.
+
+#### Manual Deployment
+```bash
+# Build the project
+npm run build
+
+# Deploy to any static hosting service
+# The .next directory contains the built application
+```
+
+### Access Points
+- **Main Application**: [http://localhost:3000](http://localhost:3000)
+- **Admin Dashboard**: [http://localhost:3000/admin](http://localhost:3000/admin)
+- **API Health Check**: [http://localhost:3000/api/health](http://localhost:3000/api/health)
+
+## 🌐 Network Configuration
+
+The platform uses a custom blockchain network configuration:
+
+- **Chain ID**: 1337 (0x539)
+- **Network Name**: Custom Network
+- **Native Currency**: CETH
+- **RPC URL**: http://127.0.0.1:8545
+
+### Supported Wallets
+- **MetaMask**: Browser extension wallet
+- **Trust Wallet**: Mobile wallet with browser extension
+- **Bybit**: Crypto exchange wallet
+- **Phantom**: Solana ecosystem wallet
+- **Coinbase**: Mainstream crypto wallet
+
+## 💱 Supported Tokens
+
+| Token | Type | Forced Price | Market Price |
+|-------|------|---------------|--------------|
+| USDT | ERC20 | $2.00 | $1.00 |
+| USDT_TRC20 | TRC20 | $2.00 | $1.00 |
+| ETH | NATIVE | $3,500 | $3,000 |
+| CUSTOM | ERC20 | $10.00 | $0.10 |
+
+## 🔧 Technology Stack
+
+### 🎯 Core Framework
+- **⚡ Next.js 15** - The React framework for production with App Router
+- **📘 TypeScript 5** - Type-safe JavaScript for better developer experience
+- **🎨 Tailwind CSS 4** - Utility-first CSS framework for rapid UI development
+
+### 🧩 UI Components & Styling
+- **🧩 shadcn/ui** - High-quality, accessible components built on Radix UI
+- **🎯 Lucide React** - Beautiful & consistent icon library
+- **🎨 Framer Motion** - Production-ready motion library for React
+- **🌈 Next Themes** - Perfect dark mode in 2 lines of code
+
+### 🗄️ Database & Backend
+- **🗄️ Prisma** - Next-generation Node.js and TypeScript ORM
+- **🔐 NextAuth.js** - Complete open-source authentication solution
+- **🔌 Socket.io** - Real-time bidirectional event-based communication
+
+### 🔄 State Management & Data Fetching
+- **🐻 Zustand** - Simple, scalable state management
+- **🔄 TanStack Query** - Powerful data synchronization for React
+- **🌐 Axios** - Promise-based HTTP client
+
+### 🎨 Advanced UI Features
+- **📊 TanStack Table** - Headless UI for building tables and datagrids
+- **🖱️ DND Kit** - Modern drag and drop toolkit for React
+- **📊 Recharts** - Redefined chart library built with React and D3
+
+## 🤝 Development & Deployment
+
+### 📁 Project Structure
+
+```
+src/
+├── app/                 # Next.js App Router pages
+│   ├── admin/          # Admin dashboard pages
+│   ├── api/            # API routes
+│   └── globals.css     # Global styles
+├── components/          # Reusable React components
+│   ├── ui/             # shadcn/ui components
+│   └── ...             # Custom components
+├── hooks/              # Custom React hooks
+└── lib/                # Utility functions and configurations
+    ├── db.ts           # Database connection
+    ├── networkService.ts  # Network configuration
+    └── walletConnectionService.ts  # Wallet connection logic
+```
+
+### 🚀 Development Commands
+
+```bash
+# Development
+npm run dev              # Start development server
+npm run lint            # Run ESLint
+
+# Database
+npm run db:push         # Push schema to database
+npm run db:generate     # Generate Prisma client
+npm run db:migrate      # Run database migrations
+npm run db:reset        # Reset database
+
+# Production
+npm run build          # Build for production
+npm start              # Start production server
+```
 
 ## 🤖 Powered by Z.ai
 
-This scaffold is optimized for use with [Z.ai](https://chat.z.ai) - your AI assistant for:
+This platform is built with [Z.ai](https://chat.z.ai) - your AI assistant for:
 
 - **💻 Code Generation** - Generate components, pages, and features instantly
 - **🎨 UI Development** - Create beautiful interfaces with AI assistance  
@@ -84,58 +234,10 @@ This scaffold is optimized for use with [Z.ai](https://chat.z.ai) - your AI assi
 
 Ready to build something amazing? Start chatting with Z.ai at [chat.z.ai](https://chat.z.ai) and experience the future of AI-powered development!
 
-## 📁 Project Structure
+## 📄 License
 
-```
-src/
-├── app/                 # Next.js App Router pages
-├── components/          # Reusable React components
-│   └── ui/             # shadcn/ui components
-├── hooks/              # Custom React hooks
-└── lib/                # Utility functions and configurations
-```
-
-## 🎨 Available Features & Components
-
-This scaffold includes a comprehensive set of modern web development tools:
-
-### 🧩 UI Components (shadcn/ui)
-- **Layout**: Card, Separator, Aspect Ratio, Resizable Panels
-- **Forms**: Input, Textarea, Select, Checkbox, Radio Group, Switch
-- **Feedback**: Alert, Toast (Sonner), Progress, Skeleton
-- **Navigation**: Breadcrumb, Menubar, Navigation Menu, Pagination
-- **Overlay**: Dialog, Sheet, Popover, Tooltip, Hover Card
-- **Data Display**: Badge, Avatar, Calendar
-
-### 📊 Advanced Data Features
-- **Tables**: Powerful data tables with sorting, filtering, pagination (TanStack Table)
-- **Charts**: Beautiful visualizations with Recharts
-- **Forms**: Type-safe forms with React Hook Form + Zod validation
-
-### 🎨 Interactive Features
-- **Animations**: Smooth micro-interactions with Framer Motion
-- **Drag & Drop**: Modern drag-and-drop functionality with DND Kit
-- **Theme Switching**: Built-in dark/light mode support
-
-### 🔐 Backend Integration
-- **Authentication**: Ready-to-use auth flows with NextAuth.js
-- **Database**: Type-safe database operations with Prisma
-- **API Client**: HTTP requests with Axios + TanStack Query
-- **State Management**: Simple and scalable with Zustand
-
-### 🌍 Production Features
-- **Internationalization**: Multi-language support with Next Intl
-- **Image Optimization**: Automatic image processing with Sharp
-- **Type Safety**: End-to-end TypeScript with Zod validation
-- **Essential Hooks**: 100+ useful React hooks with ReactUse for common patterns
-
-## 🤝 Get Started with Z.ai
-
-1. **Clone this scaffold** to jumpstart your project
-2. **Visit [chat.z.ai](https://chat.z.ai)** to access your AI coding assistant
-3. **Start building** with intelligent code generation and assistance
-4. **Deploy with confidence** using the production-ready setup
+This project is licensed under the MIT License - see the LICENSE file for details.
 
 ---
 
-Built with ❤️ for the developer community. Supercharged by [Z.ai](https://chat.z.ai) 🚀
+Built with ❤️ for the Nigerian DeFi community. Supercharged by [Z.ai](https://chat.z.ai) 🚀
