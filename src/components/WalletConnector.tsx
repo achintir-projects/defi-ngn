@@ -113,6 +113,27 @@ export default function WalletConnector({ onWalletConnected, onWalletDisconnecte
     }
   }
 
+  // Get detection status message
+  const getDetectionStatus = () => {
+    if (availableWallets.length === 0) {
+      return "Detecting wallets..."
+    }
+    
+    const mobileWallets = availableWallets.filter(w => ['trustwallet', 'bybit', 'metamask'].includes(w))
+    const hasMobileWallets = mobileWallets.length > 0
+    
+    if (walletService.isDeviceMobile()) {
+      if (hasMobileWallets) {
+        return `${mobileWallets.length} mobile wallet${mobileWallets.length > 1 ? 's' : ''} available`
+      } else {
+        return "Mobile wallets may be installed - try connecting below"
+      }
+    } else {
+      const desktopWallets = availableWallets.filter(w => !['manual', 'qr'].includes(w))
+      return `${desktopWallets.length} wallet${desktopWallets.length > 1 ? 's' : ''} detected`
+    }
+  }
+
   // Prioritize wallets: Trust Wallet, Bybit, then others
   const prioritizeWallets = (wallets: string[]) => {
     const priorityOrder = ['trustwallet', 'bybit', 'metamask', 'coinbase', 'phantom', 'web3', 'manual', 'qr']
@@ -462,6 +483,21 @@ export default function WalletConnector({ onWalletConnected, onWalletDisconnecte
             Your wallet will be connected to our Custom Network where you can receive and transfer tokens with zero gas fees.
           </AlertDescription>
         </Alert>
+
+        {/* Detection Status */}
+        <div className="text-center">
+          <p className="text-sm text-gray-300 mb-2">
+            <span className="inline-flex items-center">
+              <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+              {getDetectionStatus()}
+            </span>
+          </p>
+          {walletService.isDeviceMobile() && (
+            <p className="text-xs text-gray-400">
+              If you have Trust Wallet or Bybit installed, they should appear below
+            </p>
+          )}
+        </div>
 
         {/* Featured Wallets - Trust Wallet & Bybit */}
         <div className="space-y-4">

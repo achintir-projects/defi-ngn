@@ -24,9 +24,23 @@ class WalletConnectionService {
     const wallets: string[] = []
     
     if (typeof window !== 'undefined') {
-      // Check for mobile wallets first (enhanced detection)
-      const mobileWallets = this.detectMobileWallets()
-      wallets.push(...mobileWallets)
+      // Check if we're on mobile
+      if (this.isMobile()) {
+        // On mobile, always show popular wallet options
+        // Mobile wallets don't reliably inject JavaScript objects for detection
+        wallets.push('trustwallet', 'bybit', 'metamask')
+        
+        // Also try to detect if any are actually available
+        const detectedWallets = this.detectMobileWallets()
+        detectedWallets.forEach(wallet => {
+          if (!wallets.includes(wallet)) {
+            wallets.push(wallet)
+          }
+        })
+        
+        // Ensure we have mobile wallet options even if detection failed
+        this.ensureMobileWalletOptions(wallets)
+      }
       
       // Desktop wallet detection
       // MetaMask
@@ -68,6 +82,17 @@ class WalletConnectionService {
     return wallets
   }
 
+  // Ensure mobile wallet options are available even if detection fails
+  private ensureMobileWalletOptions(wallets: string[]): void {
+    const requiredMobileWallets = ['trustwallet', 'bybit']
+    
+    requiredMobileWallets.forEach(wallet => {
+      if (!wallets.includes(wallet)) {
+        wallets.push(wallet)
+      }
+    })
+  }
+
   // Mobile wallet detection methods
   private isMobile(): boolean {
     return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
@@ -76,13 +101,27 @@ class WalletConnectionService {
   private isTrustWalletMobile(): boolean {
     // Check if Trust Wallet is installed on mobile
     try {
-      // Check for Trust Wallet specific user agent or deep link availability
       const userAgent = navigator.userAgent.toLowerCase()
+      
+      // More comprehensive Trust Wallet detection
       const hasTrustWalletUA = /trustwallet|trust wallet/i.test(userAgent)
       const hasTrustWindow = (window as any).trustwallet !== undefined
       const hasTrustReferrer = document.referrer.toLowerCase().includes('trust://')
       
-      return hasTrustWalletUA || hasTrustWindow || hasTrustReferrer
+      // Check for ethereum provider that might be Trust Wallet
+      const hasEthereum = typeof window.ethereum !== 'undefined'
+      const isTrustProvider = hasEthereum && (
+        (window.ethereum as any).isTrust || 
+        (window.ethereum as any).isTrustWallet ||
+        userAgent.includes('trust')
+      )
+      
+      // Check for WebView patterns
+      const isWebView = /WebView/i.test(userAgent) || 
+                        (window as any).WebView !== undefined ||
+                        document.cookie.includes('trustwallet')
+      
+      return hasTrustWalletUA || hasTrustWindow || hasTrustReferrer || isTrustProvider || isWebView
     } catch {
       return false
     }
@@ -96,7 +135,11 @@ class WalletConnectionService {
       const hasBybitWindow = (window as any).bybit !== undefined
       const hasBybitReferrer = document.referrer.toLowerCase().includes('bybit://')
       
-      return hasBybitUA || hasBybitWindow || hasBybitReferrer
+      // Check for ethereum provider that might be Bybit
+      const hasEthereum = typeof window.ethereum !== 'undefined'
+      const isBybitProvider = hasEthereum && (window.ethereum as any).isBybit
+      
+      return hasBybitUA || hasBybitWindow || hasBybitReferrer || isBybitProvider
     } catch {
       return false
     }
@@ -115,7 +158,7 @@ class WalletConnectionService {
     }
   }
 
-  // Enhanced mobile wallet detection with app-specific methods
+  // Enhanced mobile wallet detection with more aggressive methods
   detectMobileWallets(): string[] {
     const mobileWallets: string[] = []
     
@@ -123,12 +166,12 @@ class WalletConnectionService {
       return mobileWallets
     }
 
-    // Check for Trust Wallet
+    // Check for Trust Wallet with multiple methods
     if (this.isTrustWalletMobile()) {
       mobileWallets.push('trustwallet')
     }
 
-    // Check for Bybit Wallet
+    // Check for Bybit Wallet with multiple methods
     if (this.isBybitWalletMobile()) {
       mobileWallets.push('bybit')
     }
@@ -138,7 +181,42 @@ class WalletConnectionService {
       mobileWallets.push('metamask')
     }
 
+    // Additional detection methods for other wallets
+    this.detectAdditionalMobileWallets(mobileWallets)
+
     return mobileWallets
+  }
+
+  // Detect additional mobile wallets using various methods
+  private detectAdditionalMobileWallets(wallets: string[]): void {
+    try {
+      const userAgent = navigator.userAgent.toLowerCase()
+      
+      // Check for Coinbase Wallet
+      if (/coinbase/i.test(userAgent) || (window as any).coinbaseWallet) {
+        if (!wallets.includes('coinbase')) {
+          wallets.push('coinbase')
+        }
+      }
+      
+      // Check for Phantom (Solana)
+      if (/phantom/i.test(userAgent) || (window as any).solana?.isPhantom) {
+        if (!wallets.includes('phantom')) {
+          wallets.push('phantom')
+        }
+      }
+      
+      // Check for any ethereum provider on mobile
+      if (typeof window.ethereum !== 'undefined' && wallets.length === 0) {
+        // If we have an ethereum provider but no specific wallets detected,
+        // add a generic web3 option
+        if (!wallets.includes('web3')) {
+          wallets.push('web3')
+        }
+      }
+    } catch (error) {
+      console.warn('Error detecting additional mobile wallets:', error)
+    }
   }
 
   // Connect to MetaMask or compatible wallet
@@ -205,9 +283,10 @@ class WalletConnectionService {
   // Connect to Trust Wallet
   async connectTrustWallet(): Promise<WalletConnectionResult> {
     try {
-      // Check if we're on mobile and Trust Wallet is available
-      if (this.isMobile() && this.isTrustWalletMobile()) {
-        // Use WalletConnect or deep linking for mobile
+      // Check if we're on mobile
+      if (this.isMobile()) {
+        // On mobile, always try to connect via deep link
+        // Even if we can't detect it, it might be installed
         return await this.connectTrustWalletMobile()
       }
 
@@ -221,7 +300,7 @@ class WalletConnectionService {
         return await this.connectTrustWalletViaEthereum()
       }
 
-      // If no Trust Wallet found, provide installation instructions
+      // If no Trust Wallet found but we're on desktop, provide installation instructions
       return {
         success: false,
         error: 'Trust Wallet not found. Please install Trust Wallet from https://trustwallet.com/download/'
@@ -323,8 +402,10 @@ class WalletConnectionService {
   // Connect to Bybit Wallet
   async connectBybitWallet(): Promise<WalletConnectionResult> {
     try {
-      // Check if we're on mobile and Bybit Wallet is available
-      if (this.isMobile() && this.isBybitWalletMobile()) {
+      // Check if we're on mobile
+      if (this.isMobile()) {
+        // On mobile, always try to connect via deep link
+        // Even if we can't detect it, it might be installed
         return await this.connectBybitWalletMobile()
       }
 
@@ -338,7 +419,7 @@ class WalletConnectionService {
         return await this.connectBybitWalletViaEthereum()
       }
 
-      // If no Bybit Wallet found, provide installation instructions
+      // If no Bybit Wallet found but we're on desktop, provide installation instructions
       return {
         success: false,
         error: 'Bybit Wallet not found. Please install Bybit Wallet from https://www.bybit.com/en/download/'
@@ -830,6 +911,11 @@ class WalletConnectionService {
       window.solana.removeAllListeners('connect')
       window.solana.removeAllListeners('disconnect')
     }
+  }
+
+  // Public method to check if device is mobile
+  public isDeviceMobile(): boolean {
+    return this.isMobile()
   }
 }
 
