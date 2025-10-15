@@ -248,14 +248,23 @@ export default function ExternalWalletManager() {
   }
 
   const handleCopyAddress = (address: string) => {
-    navigator.clipboard.writeText(address)
-    setCopiedAddress(address)
-    setTimeout(() => setCopiedAddress(''), 2000)
-    
-    toast({
-      title: "Address Copied",
-      description: "Wallet address copied to clipboard",
-    })
+    // Check if we're in a browser environment with clipboard support
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(address)
+      setCopiedAddress(address)
+      setTimeout(() => setCopiedAddress(''), 2000)
+      
+      toast({
+        title: "Address Copied",
+        description: "Wallet address copied to clipboard",
+      })
+    } else {
+      toast({
+        title: "Copy Failed",
+        description: "Clipboard not available in this environment.",
+        variant: "destructive",
+      })
+    }
   }
 
   const handleOpenWallet = (wallet: WalletConnection) => {

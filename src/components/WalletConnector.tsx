@@ -282,11 +282,21 @@ export default function WalletConnector({ onWalletConnected, onWalletDisconnecte
 
   const copyAddress = () => {
     if (walletInfo?.address) {
-      navigator.clipboard.writeText(walletInfo.address)
-      toast({
-        title: "Address Copied",
-        description: "Wallet address copied to clipboard.",
-      })
+      // Check if we're in a browser environment with clipboard support
+      if (typeof navigator !== 'undefined' && navigator.clipboard) {
+        navigator.clipboard.writeText(walletInfo.address)
+        toast({
+          title: "Address Copied",
+          description: "Wallet address copied to clipboard.",
+        })
+      } else {
+        // Fallback for environments without clipboard support
+        toast({
+          title: "Copy Failed",
+          description: "Clipboard not available in this environment.",
+          variant: "destructive",
+        })
+      }
     }
   }
 

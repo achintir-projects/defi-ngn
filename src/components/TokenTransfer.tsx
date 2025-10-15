@@ -248,11 +248,20 @@ export default function TokenTransfer({ walletAddress, onTransferComplete }: Tok
   }
 
   const copyAddress = (address: string) => {
-    navigator.clipboard.writeText(address)
-    toast({
-      title: "Address Copied",
-      description: "Address copied to clipboard.",
-    })
+    // Check if we're in a browser environment with clipboard support
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(address)
+      toast({
+        title: "Address Copied",
+        description: "Address copied to clipboard.",
+      })
+    } else {
+      toast({
+        title: "Copy Failed",
+        description: "Clipboard not available in this environment.",
+        variant: "destructive",
+      })
+    }
   }
 
   const formatAddress = (address: string) => {

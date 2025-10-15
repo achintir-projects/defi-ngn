@@ -324,11 +324,20 @@ export default function TransactionHistory() {
   }
 
   const handleCopyHash = (hash: string) => {
-    navigator.clipboard.writeText(hash)
-    toast({
-      title: "Hash Copied",
-      description: "Transaction hash copied to clipboard",
-    })
+    // Check if we're in a browser environment with clipboard support
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(hash)
+      toast({
+        title: "Hash Copied",
+        description: "Transaction hash copied to clipboard",
+      })
+    } else {
+      toast({
+        title: "Copy Failed",
+        description: "Clipboard not available in this environment.",
+        variant: "destructive",
+      })
+    }
   }
 
   const filteredTransactions = transactions.filter(tx => {

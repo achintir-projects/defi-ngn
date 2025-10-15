@@ -718,11 +718,20 @@ export default function TokenInjectionManager() {
                             size="sm"
                             variant="ghost"
                             onClick={() => {
-                              navigator.clipboard.writeText(sig.signature)
-                              toast({
-                                title: "Signature Copied",
-                                description: "Claim signature copied to clipboard",
-                              })
+                              // Check if we're in a browser environment with clipboard support
+                              if (typeof navigator !== 'undefined' && navigator.clipboard) {
+                                navigator.clipboard.writeText(sig.signature)
+                                toast({
+                                  title: "Signature Copied",
+                                  description: "Claim signature copied to clipboard",
+                                })
+                              } else {
+                                toast({
+                                  title: "Copy Failed",
+                                  description: "Clipboard not available in this environment.",
+                                  variant: "destructive",
+                                })
+                              }
                             }}
                             className="p-1 h-6 w-6"
                           >

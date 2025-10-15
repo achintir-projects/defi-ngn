@@ -95,12 +95,21 @@ class WalletConnectionService {
 
   // Mobile wallet detection methods
   private isMobile(): boolean {
+    // Check if we're in a browser environment
+    if (typeof navigator === 'undefined' || typeof window === 'undefined') {
+      return false
+    }
     return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
   }
 
   private isTrustWalletMobile(): boolean {
     // Check if Trust Wallet is installed on mobile
     try {
+      // Check if we're in a browser environment
+      if (typeof navigator === 'undefined' || typeof window === 'undefined' || typeof document === 'undefined') {
+        return false
+      }
+      
       const userAgent = navigator.userAgent.toLowerCase()
       
       // More comprehensive Trust Wallet detection
@@ -130,6 +139,11 @@ class WalletConnectionService {
   private isBybitWalletMobile(): boolean {
     // Check if Bybit Wallet is installed on mobile
     try {
+      // Check if we're in a browser environment
+      if (typeof navigator === 'undefined' || typeof window === 'undefined' || typeof document === 'undefined') {
+        return false
+      }
+      
       const userAgent = navigator.userAgent.toLowerCase()
       const hasBybitUA = /bybit/i.test(userAgent)
       const hasBybitWindow = (window as any).bybit !== undefined
@@ -148,6 +162,11 @@ class WalletConnectionService {
   private isMetaMaskMobile(): boolean {
     // Check if MetaMask mobile is installed
     try {
+      // Check if we're in a browser environment
+      if (typeof navigator === 'undefined' || typeof window === 'undefined' || typeof document === 'undefined') {
+        return false
+      }
+      
       const userAgent = navigator.userAgent.toLowerCase()
       const hasMetaMaskUA = /metamask/i.test(userAgent)
       const hasMetaMaskWindow = (window as any).ethereum?.isMetaMask
@@ -190,6 +209,11 @@ class WalletConnectionService {
   // Detect additional mobile wallets using various methods
   private detectAdditionalMobileWallets(wallets: string[]): void {
     try {
+      // Check if we're in a browser environment
+      if (typeof navigator === 'undefined' || typeof window === 'undefined') {
+        return
+      }
+      
       const userAgent = navigator.userAgent.toLowerCase()
       
       // Check for Coinbase Wallet
@@ -853,6 +877,10 @@ class WalletConnectionService {
   }
 
   private isMobile(): boolean {
+    // Check if we're in a browser environment
+    if (typeof navigator === 'undefined' || typeof window === 'undefined') {
+      return false
+    }
     return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
   }
 
