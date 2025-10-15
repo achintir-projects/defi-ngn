@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({
           jsonrpc: '2.0',
           id: 1,
-          result: '0x539' // 1337 in hex
+          result: '0xaa36a7' // Sepolia testnet chain ID in hex
         })
         
       case 'eth_getBlockByNumber':
@@ -77,7 +77,28 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({
           jsonrpc: '2.0',
           id: 1,
-          result: '1337'
+          result: '11155111' // Sepolia chain ID in decimal
+        })
+        
+      case 'eth_gasPrice':
+        return NextResponse.json({
+          jsonrpc: '2.0',
+          id: 1,
+          result: '0x4a817c800' // 20 Gwei in hex
+        })
+        
+      case 'eth_blockNumber':
+        return NextResponse.json({
+          jsonrpc: '2.0',
+          id: 1,
+          result: '0x1' // Block 1
+        })
+        
+      case 'eth_getCode':
+        return NextResponse.json({
+          jsonrpc: '2.0',
+          id: 1,
+          result: '0x' // Empty code
         })
         
       default:
@@ -108,7 +129,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({
           jsonrpc: '2.0',
           id: body.id || 1,
-          result: '0x539' // 1337 in hex
+          result: '0xaa36a7' // Sepolia testnet chain ID in hex
         })
         
       case 'eth_getBlockByNumber':
@@ -169,7 +190,28 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({
           jsonrpc: '2.0',
           id: body.id || 1,
-          result: '1337'
+          result: '11155111' // Sepolia chain ID in decimal
+        })
+        
+      case 'eth_gasPrice':
+        return NextResponse.json({
+          jsonrpc: '2.0',
+          id: body.id || 1,
+          result: '0x4a817c800' // 20 Gwei in hex
+        })
+        
+      case 'eth_blockNumber':
+        return NextResponse.json({
+          jsonrpc: '2.0',
+          id: body.id || 1,
+          result: '0x1' // Block 1
+        })
+        
+      case 'eth_getCode':
+        return NextResponse.json({
+          jsonrpc: '2.0',
+          id: body.id || 1,
+          result: '0x' // Empty code
         })
         
       default:

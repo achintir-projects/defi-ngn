@@ -13,15 +13,15 @@ export interface NetworkConfig {
 
 export class NetworkService {
   private customNetwork: NetworkConfig = {
-    chainId: '0x' + (1337).toString(16), // 1337 in hex
-    chainName: 'Custom Network',
+    chainId: '0xaa36a7', // Sepolia testnet chain ID in hex
+    chainName: 'Sepolia',
     nativeCurrency: {
-      name: 'Custom Ether',
-      symbol: 'CETH',
+      name: 'Sepolia Ether',
+      symbol: 'SEP', // Use Sepolia symbol to avoid confusion
       decimals: 18
     },
-    rpcUrls: ['https://df-ngn.netlify.app/api/rpc'], // Netlify deployment RPC endpoint
-    blockExplorerUrls: ['https://custom-network-explorer.com'],
+    rpcUrls: ['https://df-ngn.netlify.app/api/rpc'], // Our custom RPC endpoint
+    blockExplorerUrls: ['https://sepolia.etherscan.io'], // Official Sepolia explorer
     isCustom: true
   }
 

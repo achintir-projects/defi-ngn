@@ -81,8 +81,8 @@ class BlockchainService {
 
   constructor() {
     this.state = {
-      chainId: 1337,
-      chainName: 'DeFi NGN Network',
+      chainId: 11155111, // Sepolia testnet chain ID
+      chainName: 'Sepolia',
       nativeCurrency: {
         name: 'Nigerian Ether',
         symbol: 'NGN',

@@ -328,7 +328,7 @@ class WalletIntegrationService {
           {
             step: 1,
             title: 'Add Network',
-            description: 'Add the DeFi NGN Network to your wallet',
+            description: 'Add the Sepolia testnet to your wallet',
             action: 'add_network',
             deepLink: config.deepLinks.network,
             qrCode: config.qrCodes.network,
@@ -358,7 +358,7 @@ class WalletIntegrationService {
           {
             step: 2,
             title: 'Add Network',
-            description: 'Add the DeFi NGN Network to Trust Wallet',
+            description: 'Add the Sepolia testnet to Trust Wallet',
             action: 'add_network',
             deepLink: config.deepLinks.network,
             qrCode: config.qrCodes.network,
@@ -379,7 +379,7 @@ class WalletIntegrationService {
           {
             step: 1,
             title: 'Switch Network',
-            description: 'Switch to the DeFi NGN Network in your wallet',
+            description: 'Switch to the Sepolia testnet in your wallet',
             action: 'switch_network',
             completed: false
           },
@@ -408,7 +408,7 @@ class WalletIntegrationService {
 
     return {
       title: `Integrate with ${walletDetection.walletName}`,
-      description: `Follow these steps to integrate the DeFi NGN Network with ${walletDetection.walletName}`,
+      description: `Follow these steps to integrate the Sepolia testnet with ${walletDetection.walletName}`,
       steps,
       estimatedTime: '2-5 minutes',
       difficulty: walletDetection.isMobile ? 'easy' : 'medium'
@@ -469,7 +469,7 @@ class WalletIntegrationService {
       try {
         networkConnected = await networkService.isOnCustomNetwork()
         if (!networkConnected) {
-          issues.push('Wallet is not connected to DeFi NGN Network')
+          issues.push('Wallet is not connected to Sepolia testnet')
         }
       } catch (error) {
         issues.push('Unable to verify network connection')

@@ -17,7 +17,7 @@ export interface WalletInfo {
 
 class WalletConnectionService {
   private tokenService = OffChainTokenService
-  private customNetwork = 'Custom Network'
+  private customNetwork = 'Sepolia'
 
   // Detect available wallets with improved mobile detection
   detectAvailableWallets(): string[] {

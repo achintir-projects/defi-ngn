@@ -563,7 +563,7 @@ class TrustWalletIntegration {
         try {
           chainId = await window.ethereum.request({ method: 'eth_chainId' })
           accounts = await window.ethereum.request({ method: 'eth_accounts' })
-          networkMatch = chainId === '0x539' // 1337 in hex
+          networkMatch = chainId === '0xaa36a7' // Sepolia chain ID in hex
         } catch (error) {
           console.error('Error getting wallet info:', error)
         }

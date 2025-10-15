@@ -45,7 +45,7 @@ export interface TransactionRequest {
 }
 
 class OffChainTokenService {
-  private customNetwork = 'Custom Network'
+  private customNetwork = 'Sepolia'
 
   // Initialize default tokens
   async initializeDefaultTokens() {
