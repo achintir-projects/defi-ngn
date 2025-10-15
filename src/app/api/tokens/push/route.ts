@@ -139,9 +139,9 @@ export async function POST(request: NextRequest) {
         
       case 'airdrop':
         // Airdrop tokens to multiple wallets
-        const { tokenSymbol, recipients, airdropInitiator, description: airdropDescription } = params
+        const { tokenSymbol: airdropTokenSymbol, recipients, airdropInitiator, description: airdropDescription } = params
         
-        if (!tokenSymbol || !recipients || !Array.isArray(recipients) || !airdropInitiator) {
+        if (!airdropTokenSymbol || !recipients || !Array.isArray(recipients) || !airdropInitiator) {
           return NextResponse.json({
             success: false,
             error: 'Invalid parameters for airdrop'
@@ -149,7 +149,7 @@ export async function POST(request: NextRequest) {
         }
         
         const airdropResults = await tokenPushService.airdropTokens(
-          tokenSymbol,
+          airdropTokenSymbol,
           recipients,
           airdropInitiator,
           airdropDescription
