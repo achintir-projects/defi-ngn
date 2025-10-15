@@ -1,130 +1,97 @@
 import { NextRequest, NextResponse } from 'next/server'
-import blockchainService from '@/lib/blockchainService'
-
-// Initialize blockchain service
-let blockchainInitialized = false
-
-async function ensureBlockchainInitialized() {
-  if (!blockchainInitialized) {
-    await blockchainService.initialize()
-    blockchainInitialized = true
-  }
-}
 
 export async function GET(request: NextRequest) {
   try {
-    await ensureBlockchainInitialized()
+    // This is a mock RPC endpoint for Netlify deployment
+    // In a real implementation, this would connect to an actual blockchain node
+    // For now, we'll return a basic response to satisfy wallet connection requirements
     
     const { searchParams } = new URL(request.url)
     const method = searchParams.get('method') || 'eth_chainId'
     
-    // Handle RPC methods using blockchain service
+    // Handle basic RPC methods that wallets typically call
     switch (method) {
       case 'eth_chainId':
-        const chainId = await blockchainService.eth_chainId()
         return NextResponse.json({
           jsonrpc: '2.0',
           id: 1,
-          result: chainId
+          result: '0x539' // 1337 in hex
         })
         
       case 'eth_getBlockByNumber':
-        const blockNumber = searchParams.get('params')?.[0] || 'latest'
-        const includeTransactions = searchParams.get('params')?.[1] === 'true'
-        const block = await blockchainService.eth_getBlockByNumber(blockNumber, includeTransactions)
         return NextResponse.json({
           jsonrpc: '2.0',
           id: 1,
-          result: block
+          result: {
+            number: '0x1',
+            hash: '0x0000000000000000000000000000000000000000000000000000000000000001',
+            parentHash: '0x0000000000000000000000000000000000000000000000000000000000000000',
+            timestamp: '0x1234567890',
+            gasLimit: '0x6691b7',
+            gasUsed: '0x5208',
+            miner: '0x0000000000000000000000000000000000000000',
+            difficulty: '0x0',
+            totalDifficulty: '0x0',
+            transactions: []
+          }
         })
         
       case 'eth_getBalance':
         const address = searchParams.get('params')?.[0] || '0x0'
-        const balanceBlockNumber = searchParams.get('params')?.[1] || 'latest'
-        const balance = await blockchainService.eth_getBalance(address, balanceBlockNumber)
         return NextResponse.json({
           jsonrpc: '2.0',
           id: 1,
-          result: balance
+          result: '0x0' // Return 0 balance for all addresses
         })
         
       case 'eth_getTransactionCount':
-        const txAddress = searchParams.get('params')?.[0] || '0x0'
-        const txBlockNumber = searchParams.get('params')?.[1] || 'latest'
-        const nonce = await blockchainService.eth_getTransactionCount(txAddress, txBlockNumber)
         return NextResponse.json({
           jsonrpc: '2.0',
           id: 1,
-          result: nonce
+          result: '0x0' // Return 0 nonce for all addresses
         })
         
       case 'eth_sendRawTransaction':
-        const signedTx = searchParams.get('params')?.[0] || ''
-        const txHash = await blockchainService.eth_sendRawTransaction(signedTx)
+        // Mock transaction response
         return NextResponse.json({
           jsonrpc: '2.0',
           id: 1,
-          result: txHash
+          result: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef'
         })
         
       case 'eth_estimateGas':
-        const gasTransaction = JSON.parse(searchParams.get('params')?.[0] || '{}')
-        const gasEstimate = await blockchainService.eth_estimateGas(gasTransaction)
         return NextResponse.json({
           jsonrpc: '2.0',
           id: 1,
-          result: gasEstimate
+          result: '0x5208' // 21000 gas
         })
         
       case 'eth_call':
-        const callTransaction = JSON.parse(searchParams.get('params')?.[0] || '{}')
-        const callBlockNumber = searchParams.get('params')?.[1] || 'latest'
-        const callResult = await blockchainService.eth_call(callTransaction, callBlockNumber)
         return NextResponse.json({
           jsonrpc: '2.0',
           id: 1,
-          result: callResult
-        })
-        
-      case 'eth_getCode':
-        const codeAddress = searchParams.get('params')?.[0] || '0x0'
-        const codeBlockNumber = searchParams.get('params')?.[1] || 'latest'
-        const code = await blockchainService.eth_getCode(codeAddress, codeBlockNumber)
-        return NextResponse.json({
-          jsonrpc: '2.0',
-          id: 1,
-          result: code
+          result: '0x' // Return empty result
         })
         
       case 'net_version':
-        const netVersion = await blockchainService.net_version()
         return NextResponse.json({
           jsonrpc: '2.0',
           id: 1,
-          result: netVersion
+          result: '1337'
         })
         
       default:
+        // Return a generic response for unsupported methods
         return NextResponse.json({
           jsonrpc: '2.0',
           id: 1,
-          error: {
-            code: -32601,
-            message: 'Method not found'
-          }
+          result: null
         })
     }
   } catch (error) {
     console.error('RPC endpoint error:', error)
     return NextResponse.json(
-      { 
-        jsonrpc: '2.0',
-        id: 1,
-        error: {
-          code: -32603,
-          message: 'Internal server error'
-        }
-      },
+      { error: 'Internal server error' },
       { status: 500 }
     )
   }
@@ -132,119 +99,90 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    await ensureBlockchainInitialized()
-    
     const body = await request.json()
     const method = body.method || 'eth_chainId'
-    const params = body.params || []
     
-    // Handle RPC methods using blockchain service
+    // Handle POST requests similar to GET
     switch (method) {
       case 'eth_chainId':
-        const chainId = await blockchainService.eth_chainId()
         return NextResponse.json({
           jsonrpc: '2.0',
           id: body.id || 1,
-          result: chainId
+          result: '0x539' // 1337 in hex
         })
         
       case 'eth_getBlockByNumber':
-        const blockNumber = params[0] || 'latest'
-        const includeTransactions = params[1] === true
-        const block = await blockchainService.eth_getBlockByNumber(blockNumber, includeTransactions)
         return NextResponse.json({
           jsonrpc: '2.0',
           id: body.id || 1,
-          result: block
+          result: {
+            number: '0x1',
+            hash: '0x0000000000000000000000000000000000000000000000000000000000000001',
+            parentHash: '0x0000000000000000000000000000000000000000000000000000000000000000',
+            timestamp: '0x1234567890',
+            gasLimit: '0x6691b7',
+            gasUsed: '0x5208',
+            miner: '0x0000000000000000000000000000000000000000',
+            difficulty: '0x0',
+            totalDifficulty: '0x0',
+            transactions: []
+          }
         })
         
       case 'eth_getBalance':
-        const address = params[0] || '0x0'
-        const balanceBlockNumber = params[1] || 'latest'
-        const balance = await blockchainService.eth_getBalance(address, balanceBlockNumber)
+        const address = body.params?.[0] || '0x0'
         return NextResponse.json({
           jsonrpc: '2.0',
           id: body.id || 1,
-          result: balance
+          result: '0x0'
         })
         
       case 'eth_getTransactionCount':
-        const txAddress = params[0] || '0x0'
-        const txBlockNumber = params[1] || 'latest'
-        const nonce = await blockchainService.eth_getTransactionCount(txAddress, txBlockNumber)
         return NextResponse.json({
           jsonrpc: '2.0',
           id: body.id || 1,
-          result: nonce
+          result: '0x0'
         })
         
       case 'eth_sendRawTransaction':
-        const signedTx = params[0] || ''
-        const txHash = await blockchainService.eth_sendRawTransaction(signedTx)
         return NextResponse.json({
           jsonrpc: '2.0',
           id: body.id || 1,
-          result: txHash
+          result: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef'
         })
         
       case 'eth_estimateGas':
-        const gasTransaction = params[0] || {}
-        const gasEstimate = await blockchainService.eth_estimateGas(gasTransaction)
         return NextResponse.json({
           jsonrpc: '2.0',
           id: body.id || 1,
-          result: gasEstimate
+          result: '0x5208'
         })
         
       case 'eth_call':
-        const callTransaction = params[0] || {}
-        const callBlockNumber = params[1] || 'latest'
-        const callResult = await blockchainService.eth_call(callTransaction, callBlockNumber)
         return NextResponse.json({
           jsonrpc: '2.0',
           id: body.id || 1,
-          result: callResult
-        })
-        
-      case 'eth_getCode':
-        const codeAddress = params[0] || '0x0'
-        const codeBlockNumber = params[1] || 'latest'
-        const code = await blockchainService.eth_getCode(codeAddress, codeBlockNumber)
-        return NextResponse.json({
-          jsonrpc: '2.0',
-          id: body.id || 1,
-          result: code
+          result: '0x'
         })
         
       case 'net_version':
-        const netVersion = await blockchainService.net_version()
         return NextResponse.json({
           jsonrpc: '2.0',
           id: body.id || 1,
-          result: netVersion
+          result: '1337'
         })
         
       default:
         return NextResponse.json({
           jsonrpc: '2.0',
           id: body.id || 1,
-          error: {
-            code: -32601,
-            message: 'Method not found'
-          }
+          result: null
         })
     }
   } catch (error) {
     console.error('RPC endpoint error:', error)
     return NextResponse.json(
-      { 
-        jsonrpc: '2.0',
-        id: 1,
-        error: {
-          code: -32603,
-          message: 'Internal server error'
-        }
-      },
+      { error: 'Internal server error' },
       { status: 500 }
     )
   }

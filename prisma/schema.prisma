@@ -76,9 +76,6 @@ model TokenConfig {
   walletTokenBalances WalletTokenBalance[]
   injectionJobs      InjectionJob[]
   claimSignatures    ClaimSignature[]
-  deployedContract   DeployedContract?
-  priceUpdates       PriceUpdate[]
-  tokenPushes        TokenPush[]
 
   @@map("token_configs")
 }
@@ -179,83 +176,6 @@ model ClaimSignature {
   user         User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@map("claim_signatures")
-}
-
-model DeployedContract {
-  id            String   @id @default(cuid())
-  address       String   @unique
-  name          String
-  symbol        String   @unique
-  type          String   // ERC20, TRC20, NATIVE
-  decimals      Int
-  totalSupply   String
-  deployer      String
-  deploymentTx  String
-  blockNumber   Int
-  timestamp     DateTime
-  abi           String   // JSON string
-  bytecode      String   // Hex string
-  isActive      Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  // Relations
-  tokenConfig   TokenConfig @relation(fields: [symbol], references: [symbol], onDelete: Cascade)
-
-  @@map("deployed_contracts")
-}
-
-model PriceUpdate {
-  id              String   @id @default(cuid())
-  symbol          String
-  oldForcedPrice  Float
-  newForcedPrice  Float
-  oldRealPrice    Float
-  newRealPrice    Float
-  updateReason    String
-  updatedBy       String
-  createdAt       DateTime @default(now())
-
-  // Relations
-  tokenConfig     TokenConfig @relation(fields: [symbol], references: [symbol], onDelete: Cascade)
-
-  @@map("price_updates")
-}
-
-model TokenPush {
-  id              String   @id @default(cuid())
-  fromAddress     String
-  toAddress       String
-  tokenSymbol     String
-  amount          Float
-  forcedPrice     Float
-  pushType        String   // admin, claim, airdrop, reward
-  description     String?
-  pushInitiator   String
-  status          String   @default("pending") // pending, processing, completed, failed, cancelled
-  transactionHash String?
-  errorMessage    String?
-  createdAt       DateTime @default(now())
-  completedAt     DateTime?
-
-  // Relations
-  tokenConfig     TokenConfig @relation(fields: [tokenSymbol], references: [symbol], onDelete: Cascade)
-
-  @@map("token_pushes")
-}
-
-model IntegrationSession {
-  id              String   @id @default(cuid())
-  walletAddress   String
-  walletType      String
-  networkStatus   String   @default("disconnected") // disconnected, connected, wrong_network, network_added
-  tokenStatus     String   @default("not_added") // not_added, adding, added, failed
-  stepsCompleted  String   // JSON array of completed steps
-  createdAt       DateTime @default(now())
-  lastActivity    DateTime @default(now())
-  completedAt     DateTime?
-
-  @@map("integration_sessions")
 }
 
 // Remove the old Post model as it's not needed for the DeFi platform

@@ -27,8 +27,7 @@ import {
   Plus,
   CreditCard,
   Smartphone,
-  QrCode,
-  FileText
+  QrCode
 } from 'lucide-react'
 
 export default function UserPlatform() {
@@ -191,7 +190,7 @@ export default function UserPlatform() {
             </Alert>
           </div>
 
-          <div className="text-center mt-8 space-x-4">
+          <div className="text-center mt-8">
             <Button 
               variant="outline" 
               onClick={() => window.location.href = '/admin'}
@@ -199,22 +198,6 @@ export default function UserPlatform() {
             >
               <Settings className="mr-2 h-4 w-4" />
               Admin Portal
-            </Button>
-            <Button 
-              variant="outline" 
-              onClick={() => window.location.href = '/test-trustwallet'}
-              className="text-white border-white/20 hover:bg-white/10"
-            >
-              <Shield className="mr-2 h-4 w-4" />
-              Test Integration
-            </Button>
-            <Button 
-              variant="outline" 
-              onClick={() => window.location.href = '/validation-report'}
-              className="text-white border-white/20 hover:bg-white/10"
-            >
-              <FileText className="mr-2 h-4 w-4" />
-              Validation Report
             </Button>
           </div>
         </div>
@@ -252,24 +235,6 @@ export default function UserPlatform() {
             >
               <Settings className="mr-2 h-4 w-4" />
               Admin
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => window.location.href = '/test-trustwallet'}
-              className="text-white border-white/20 hover:bg-white/10"
-            >
-              <Shield className="mr-2 h-4 w-4" />
-              Test
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => window.location.href = '/validation-report'}
-              className="text-white border-white/20 hover:bg-white/10"
-            >
-              <FileText className="mr-2 h-4 w-4" />
-              Report
             </Button>
           </div>
         </div>

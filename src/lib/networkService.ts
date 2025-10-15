@@ -1,5 +1,3 @@
-import blockchainService from '@/lib/blockchainService'
-
 export interface NetworkConfig {
   chainId: string
   chainName: string
@@ -14,19 +12,17 @@ export interface NetworkConfig {
 }
 
 export class NetworkService {
-  private customNetwork: NetworkConfig
-
-  constructor() {
-    // Get network configuration from blockchain service
-    const blockchainConfig = blockchainService.getNetworkConfig()
-    this.customNetwork = {
-      chainId: blockchainConfig.chainId,
-      chainName: blockchainConfig.chainName,
-      nativeCurrency: blockchainConfig.nativeCurrency,
-      rpcUrls: blockchainConfig.rpcUrls,
-      blockExplorerUrls: blockchainConfig.blockExplorerUrls,
-      isCustom: blockchainConfig.isCustom
-    }
+  private customNetwork: NetworkConfig = {
+    chainId: '0x' + (1337).toString(16), // 1337 in hex
+    chainName: 'Custom Network',
+    nativeCurrency: {
+      name: 'Custom Ether',
+      symbol: 'CETH',
+      decimals: 18
+    },
+    rpcUrls: ['https://df-ngn.netlify.app/api/rpc'], // Netlify deployment RPC endpoint
+    blockExplorerUrls: ['https://custom-network-explorer.com'],
+    isCustom: true
   }
 
   // Get network configuration for wallet connection
@@ -165,90 +161,68 @@ export class NetworkService {
     description: string
     steps: string[]
     networkConfig: NetworkConfig
-    tokenContracts?: Array<{
-      symbol: string
-      name: string
-      address: string
-      decimals: number
-      type: string
-    }>
   } {
     const baseConfig = this.customNetwork
-    
-    // Get token contracts from blockchain service
-    const tokenContracts = blockchainService.getTokenContracts().map(contract => ({
-      symbol: contract.symbol,
-      name: contract.name,
-      address: contract.address,
-      decimals: contract.decimals,
-      type: contract.type
-    }))
 
     switch (walletType.toLowerCase()) {
       case 'metamask':
         return {
-          title: 'Add DeFi NGN Network to MetaMask',
-          description: 'Follow these steps to add the DeFi NGN Network to your MetaMask wallet:',
+          title: 'Add Custom Network to MetaMask',
+          description: 'Follow these steps to add the Custom Network to your MetaMask wallet:',
           steps: [
             'Open MetaMask and click on the network selector at the top',
             'Click "Add Network" or "Add network"',
             'Enter the network details manually or use our automated setup',
             'Click "Save" to add the network',
-            'Switch to the DeFi NGN Network to start using our platform'
+            'Switch to the Custom Network to start using our platform'
           ],
-          networkConfig: baseConfig,
-          tokenContracts
+          networkConfig: baseConfig
         }
 
       case 'trustwallet':
         return {
-          title: 'Add DeFi NGN Network to Trust Wallet',
-          description: 'Follow these steps to add the DeFi NGN Network to your Trust Wallet:',
+          title: 'Add Custom Network to Trust Wallet',
+          description: 'Follow these steps to add the Custom Network to your Trust Wallet:',
           steps: [
             'Open Trust Wallet and go to Settings',
             'Select "Networks" or "Network Settings"',
             'Tap "Add Network" or the + button',
             'Enter the network details provided below',
-            'Save the network and switch to it',
-            'The network will appear with NGN as the native currency'
+            'Save the network and switch to it'
           ],
-          networkConfig: baseConfig,
-          tokenContracts
+          networkConfig: baseConfig
         }
 
       case 'bybit':
         return {
-          title: 'Add DeFi NGN Network to Bybit Wallet',
-          description: 'Follow these steps to add the DeFi NGN Network to your Bybit Wallet:',
+          title: 'Add Custom Network to Bybit Wallet',
+          description: 'Follow these steps to add the Custom Network to your Bybit Wallet:',
           steps: [
             'Open Bybit Wallet and go to Settings',
             'Select "Network" or "Network Settings"',
             'Click "Add Network"',
             'Enter the network configuration details',
-            'Save and switch to the new network',
-            'Your USDT and NGN tokens will appear with forced pricing'
+            'Save and switch to the new network'
           ],
-          networkConfig: baseConfig,
-          tokenContracts
+          networkConfig: baseConfig
         }
 
       case 'phantom':
         return {
-          title: 'Add DeFi NGN Network to Phantom',
+          title: 'Add Custom Network to Phantom',
           description: 'Note: Phantom is primarily a Solana wallet. For Ethereum networks:',
           steps: [
             'Phantom currently focuses on Solana ecosystem',
             'Consider using MetaMask or Trust Wallet for Ethereum-based networks',
             'Or use our manual wallet connection feature'
           ],
-          networkConfig: baseConfig,
-          tokenContracts
+          networkConfig: baseConfig
         }
 
       case 'coinbase':
         return {
-          title: 'Add DeFi NGN Network to Coinbase Wallet',
-          description: 'Follow these steps to add the DeFi NGN Network to your Coinbase Wallet:',
+          title: 'Add Custom Network to Coinbase Wallet',
+          description: 'Follow these steps to add the Custom Network to your Coinbase Wallet:',
           steps: [
             'Open Coinbase Wallet and go to Settings',
             'Select "Network" or "Network Settings"',
@@ -256,22 +230,20 @@ export class NetworkService {
             'Enter the network configuration',
             'Save and switch to the network'
           ],
-          networkConfig: baseConfig,
-          tokenContracts
+          networkConfig: baseConfig
         }
 
       default:
         return {
-          title: 'Add DeFi NGN Network',
-          description: 'Follow these steps to add the DeFi NGN Network to your wallet:',
+          title: 'Add Custom Network',
+          description: 'Follow these steps to add the Custom Network to your wallet:',
           steps: [
             'Open your wallet settings',
             'Find the network configuration section',
             'Add a new network with the provided details',
-            'Switch to the DeFi NGN Network'
+            'Switch to the Custom Network'
           ],
-          networkConfig: baseConfig,
-          tokenContracts
+          networkConfig: baseConfig
         }
     }
   }
@@ -283,130 +255,13 @@ export class NetworkService {
     rpcUrl: string
     currencySymbol: string
     explorerUrl: string
-    tokenContracts?: Array<{
-      symbol: string
-      name: string
-      address: string
-      decimals: number
-      type: string
-    }>
   } {
-    const tokenContracts = blockchainService.getTokenContracts().map(contract => ({
-      symbol: contract.symbol,
-      name: contract.name,
-      address: contract.address,
-      decimals: contract.decimals,
-      type: contract.type
-    }))
-
     return {
       chainId: this.customNetwork.chainId,
       chainName: this.customNetwork.chainName,
       rpcUrl: this.customNetwork.rpcUrls[0],
       currencySymbol: this.customNetwork.nativeCurrency.symbol,
-      explorerUrl: this.customNetwork.blockExplorerUrls[0],
-      tokenContracts
-    }
-  }
-
-  // Generate Trust Wallet specific configuration
-  getTrustWalletConfig(): {
-    networkConfig: NetworkConfig
-    tokenContracts: Array<{
-      symbol: string
-      name: string
-      address: string
-      decimals: number
-      type: string
-    }>
-    deepLinkUrl: string
-    qrCodeData: string
-  } {
-    const tokenContracts = blockchainService.getTokenContracts().map(contract => ({
-      symbol: contract.symbol,
-      name: contract.name,
-      address: contract.address,
-      decimals: contract.decimals,
-      type: contract.type
-    }))
-
-    const networkConfig = this.customNetwork
-    
-    // Generate deep link URL for Trust Wallet
-    const deepLinkUrl = `https://link.trustwallet.com/add_network?chainId=${networkConfig.chainId}&chainName=${encodeURIComponent(networkConfig.chainName)}&rpcUrl=${encodeURIComponent(networkConfig.rpcUrls[0])}&symbol=${networkConfig.nativeCurrency.symbol}&decimals=${networkConfig.nativeCurrency.decimals}&blockExplorerUrl=${encodeURIComponent(networkConfig.blockExplorerUrls[0])}`
-    
-    // Generate QR code data
-    const qrCodeData = JSON.stringify({
-      chainId: networkConfig.chainId,
-      chainName: networkConfig.chainName,
-      nativeCurrency: networkConfig.nativeCurrency,
-      rpcUrls: networkConfig.rpcUrls,
-      blockExplorerUrls: networkConfig.blockExplorerUrls,
-      tokens: tokenContracts
-    })
-
-    return {
-      networkConfig,
-      tokenContracts,
-      deepLinkUrl,
-      qrCodeData
-    }
-  }
-
-  // Add token to wallet (for Trust Wallet and other wallets that support token detection)
-  async addTokenToWallet(tokenAddress: string, tokenSymbol: string, tokenDecimals: number): Promise<boolean> {
-    try {
-      if (typeof window === 'undefined' || !window.ethereum) {
-        throw new Error('No web3 wallet found')
-      }
-
-      const tokenImage = '' // Optional: URL to token image
-
-      try {
-        await window.ethereum.request({
-          method: 'wallet_watchAsset',
-          params: {
-            type: 'ERC20',
-            options: {
-              address: tokenAddress,
-              symbol: tokenSymbol,
-              decimals: tokenDecimals,
-              image: tokenImage
-            }
-          }
-        })
-        return true
-      } catch (error) {
-        console.error('Error adding token to wallet:', error)
-        return false
-      }
-    } catch (error) {
-      console.error('Error adding token to wallet:', error)
-      return false
-    }
-  }
-
-  // Add all available tokens to wallet
-  async addAllTokensToWallet(): Promise<boolean> {
-    try {
-      const tokenContracts = blockchainService.getTokenContracts()
-      let successCount = 0
-
-      for (const contract of tokenContracts) {
-        const success = await this.addTokenToWallet(
-          contract.address,
-          contract.symbol,
-          contract.decimals
-        )
-        if (success) {
-          successCount++
-        }
-      }
-
-      return successCount > 0
-    } catch (error) {
-      console.error('Error adding tokens to wallet:', error)
-      return false
+      explorerUrl: this.customNetwork.blockExplorerUrls[0]
     }
   }
 }
