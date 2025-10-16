@@ -165,13 +165,13 @@ export default function EnhancedAdminDashboard() {
   })
   
   const [networkForm, setNetworkForm] = useState({
-    chainName: 'DeFi NGN Network',
-    chainId: '1337',
-    nativeCurrencyName: 'Nigerian Ether',
-    nativeCurrencySymbol: 'NGN',
+    chainName: 'Sepolia',
+    chainId: '11155111',
+    nativeCurrencyName: 'Sepolia Ether',
+    nativeCurrencySymbol: 'SEP',
     nativeCurrencyDecimals: '18',
     rpcUrl: 'https://df-ngn.netlify.app/api/rpc',
-    blockExplorerUrl: 'https://explorer.defi-ngn.com'
+    blockExplorerUrl: 'https://sepolia.etherscan.io'
   })
   
   const { toast } = useToast()
@@ -240,16 +240,18 @@ export default function EnhancedAdminDashboard() {
     try {
       setIsLoading(true)
       
-      const response = await fetch('/api/admin/inject-tokens', {
+      const response = await fetch('/api/tokens/inject', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          walletAddress: injectForm.walletAddress,
           tokenSymbol: injectForm.tokenSymbol,
-          amount: injectForm.amount,
-          forcedPrice: injectForm.forcedPrice
+          amount: parseFloat(injectForm.amount),
+          forcedPrice: parseFloat(injectForm.forcedPrice),
+          targetWallets: [injectForm.walletAddress],
+          isGasless: true,
+          adminId: user?.id || 'admin'
         })
       })
       

@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
         tokenSymbol,
         amount,
         forcedPrice,
-        targetWallets,
+        targetWallets: JSON.stringify(targetWallets), // Store as JSON string
         status: scheduledFor ? 'pending' : 'processing',
         isGasless,
         scheduledFor: scheduledFor ? new Date(scheduledFor) : null,
@@ -124,8 +124,11 @@ async function processTokenInjection(jobId: string, tokenConfig: any) {
       throw new Error('Injection job not found')
     }
 
+    // Parse target wallets from JSON string
+    const targetWallets = JSON.parse(job.targetWallets)
+
     // Process each target wallet
-    for (const walletAddress of job.targetWallets) {
+    for (const walletAddress of targetWallets) {
       try {
         // Create transaction record
         await db.transaction.create({
@@ -147,10 +150,10 @@ async function processTokenInjection(jobId: string, tokenConfig: any) {
         })
 
         // Update user's token balance
-        await db.userTokenBalance.upsert({
+        await db.walletTokenBalance.upsert({
           where: {
-            userId_tokenSymbol: {
-              userId: job.adminId,
+            walletAddress_tokenSymbol: {
+              walletAddress: walletAddress,
               tokenSymbol: job.tokenSymbol
             }
           },
@@ -161,7 +164,7 @@ async function processTokenInjection(jobId: string, tokenConfig: any) {
             lastUpdated: new Date()
           },
           create: {
-            userId: job.adminId,
+            walletAddress: walletAddress,
             tokenSymbol: job.tokenSymbol,
             balance: job.amount,
             lastUpdated: new Date()
